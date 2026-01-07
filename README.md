@@ -15,11 +15,20 @@ This project addresses these challenges by leveraging **Federated Learning (FL)*
 
 We aim to predict the DMS score (fitness/stability) of mutant sequences. By utilizing [NVIDIA BioNeMo](https://github.com/NVIDIA/bionemo-framework) pre-trained models as a feature extractor, we benefit from representations learned on massive protein databases while keeping the computational cost of local training low.
 
+---
+
 ## Dataset
 
 We utilize the **[ProteinGym](https://proteingym.org/)** benchmark, a comprehensive collection of deep mutational scanning assays. ProteinGym allows us to evaluate zero-shot and supervised learning performance across diverse protein families.
 
+![data](./figures/data.png)
+
+
+<!-- (understanding the data better will update soon.)
+(including M74V;N64S as M at 74th position changed to V and N at 64th position changed to S) -->
+
 For the Federated Learning simulation, we partition the ProteinGym data into semantically meaningful groups to simulate real-world data silos:
+
 
 ### Federated Clients Simulation
 
@@ -32,9 +41,16 @@ We simulate 4 distinct clients based on their `taxon`, each representing a speci
 | **Client 3** | **Prokaryote** | Antibiotic Resistance Lab | `BLAT_ECOLX` (Beta-lactamase) |
 | **Client 4** | **Eukaryote** | Academic Bio-Foundry | `GAL4_YEAST` (Transcription factor) |
 
-![data](./figures/federated_clients.png)
+![clients](./figures/clients.png)
+
+(will update with real data locked soon)
+
+---
 
 ## Methodology
+
+<!-- things to be done:
+- correlation between dsm score vs. dsm bins? -->
 
 ### Model Structure
 
