@@ -41,3 +41,13 @@ Features: Height, Hair Color
 * [BioNeMo](https://github.com/NVIDIA/bionemo-framework)
 * [Amplify](https://github.com/NVIDIA/NVFlare/tree/main/examples/advanced/amplify)
 
+## Team
+* Ustha
+* Maggie
+* Sihyun
+* Jiayi
+* Bhanvi
+* Ramith
+* Sumeet
+  
+
