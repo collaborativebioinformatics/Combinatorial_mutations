@@ -1,5 +1,4 @@
-# Combinatorial_mutations
-Protein modeling for combinatorial mutations
+# Protein modeling for combinatorial mutations
 
 ## Problem
 
@@ -8,7 +7,7 @@ Features: Height, Hair Color
 
 ## Dataset
 * Source: SNP data
-* 1000 Genomes
+* [1000 Genomes](https://registry.opendata.aws/1000-genomes/)
 
 ![Workflow overview](figures/flow1.png)
 
@@ -30,11 +29,15 @@ Features: Height, Hair Color
 
 ## Tools
 
-
 ## Implementation
 
 ## Usage
 
 * Discrete Phenotype
 * Continuous Phenotype
+
+## Some Extended References
+
+* [BioNeMo](https://github.com/NVIDIA/bionemo-framework)
+* [Amplify](https://github.com/NVIDIA/NVFlare/tree/main/examples/advanced/amplify)
 
