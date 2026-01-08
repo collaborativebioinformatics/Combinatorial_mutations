@@ -1,0 +1,30 @@
+{
+  "format_version": 2,
+  "executors": [
+    {
+      "tasks": ["train"],
+      "executor": {
+        "path": "nvflare.app_common.executors.bionemo_executor.BioNeMoExecutor",
+        "args": {
+          "script_path": "examples/protein/esm2nv/finetune.py", 
+          "config_name": "finetune_esm2_650M",
+          "training_args": [
+            "++model.dwnstr_task_validation.enabled=True",
+            "++model.dwnstr_task_validation.dataset.train=/workspace/project/client_human.csv",
+            "++model.dwnstr_task_validation.dataset.val=/workspace/project/client_human.csv",
+            "++model.dwnstr_task_validation.dataset.test=/workspace/project/client_human.csv",
+            "++model.dwnstr_task_validation.dataset.sequence_column=sequence", 
+            "++model.dwnstr_task_validation.dataset.target_column=target",
+            
+            "++model.task_type=regression", 
+            "++model.num_labels=1",
+            "++model.dwnstr_task_validation.metric=mse",
+            
+            "++model.peft.enabled=True",
+            "++model.peft.peft_scheme=lora"
+          ]
+        }
+      }
+    }
+  ]
+}
