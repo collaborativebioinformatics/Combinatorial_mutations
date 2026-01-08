@@ -1,4 +1,4 @@
-# FedMut: Federated Prediction of Combinatorial Mutation Effects
+# FedProFit: Federated Prediction of Combinatorial Mutation Effects
 
 **Predicting Deep Mutational Scanning (DMS) scores using Pre-trained Protein Language Models in a Federated Environment.**
 
@@ -9,14 +9,7 @@ Predicting the functional effects of combinatorial mutations is a critical chall
 1. **Siloed Data:** DMS data is distributed across different institutions (hospitals, academic labs, industry), each with proprietary or sensitive datasets that cannot be easily shared.
 2. **Sparse Coverage:** The combinatorial space of mutations is astronomically vast, making exhaustive experimental characterization infeasible.
 
-**FedMut** addresses these challenges by enabling collaborative machine learning across distributed DMS datasets **without sharing raw sequence data**. Our framework leverages federated learning to train predictive models that benefit from diverse biological datasets while maintaining data privacy and ownership.
-
-### Key Benefits
-
-- **Privacy-Preserving:** Train models collaboratively without sharing raw protein sequences
-- **Cross-Institutional Collaboration:** Enable hospitals, research labs, and pharmaceutical companies to improve shared models
-- **Efficient Communication:** Only lightweight prediction head weights are transmitted, not the full model
-- **Domain-Specific Adaptation:** Each institution can adapt the model locally while benefiting from collective knowledge
+**FedProFit** addresses these challenges by enabling collaborative machine learning across distributed DMS datasets **without sharing raw sequence data**. Our framework leverages federated learning to train predictive models that benefit from diverse biological datasets while maintaining data privacy and ownership.
 
 ![overview](./figures/workflow.png)
 
@@ -34,8 +27,8 @@ Predicting the functional effects of combinatorial mutations is a critical chall
 ### Installation
 
 ```bash
-git clone https://github.com/your-username/Combinatorial_mutations.git
-cd Combinatorial_mutations
+git clone https://github.com/your-username/FedProFit.git
+cd FedProFit
 pip install -r requirements.txt
 ```
 
@@ -46,7 +39,7 @@ pip install -r requirements.txt
 The server orchestrates the aggregation of model weights across all clients.
 
 ```bash
-python server.py --rounds <span style="color:red">[specify number of communication rounds, e.g., 10]</span> --port <span style="color:red">[specify port number, e.g., 8080]</span>
+python server.py --rounds **[TODO: specify number of communication rounds, e.g., 10]** --port **[TODO: specify port number, e.g., 8080]**
 ```
 
 **2. Start the Federated Clients:**
@@ -55,16 +48,16 @@ Open separate terminals for each client to simulate distributed nodes. Each clie
 
 ```bash
 # Terminal 1: Human/Clinical Node
-python client.py --client_id 1 --taxon Human --data_path <span style="color:red">[path to Human domain data]</span>
+python client.py --client_id 1 --taxon Human --data_path **[TODO: path to Human domain data]**
 
 # Terminal 2: Virus Node
-python client.py --client_id 2 --taxon Virus --data_path <span style="color:red">[path to Virus domain data]</span>
+python client.py --client_id 2 --taxon Virus --data_path **[TODO: path to Virus domain data]**
 
 # Terminal 3: Prokaryote Node
-python client.py --client_id 3 --taxon Prokaryote --data_path <span style="color:red">[path to Prokaryote domain data]</span>
+python client.py --client_id 3 --taxon Prokaryote --data_path **[TODO: path to Prokaryote domain data]**
 
 # Terminal 4: Eukaryote Node
-python client.py --client_id 4 --taxon Eukaryote --data_path <span style="color:red">[path to Eukaryote domain data]</span>
+python client.py --client_id 4 --taxon Eukaryote --data_path **[TODO: path to Eukaryote domain data]**
 ```
 
 ### Federated Learning Protocol
@@ -73,7 +66,7 @@ The training process follows the Federated Averaging (FedAvg) algorithm:
 
 1. **Initialization**: The central server initializes the weights of the prediction head and distributes them to all clients. The BioNeMo backbone is pre-loaded on all clients.
 
-2. **Local Training**: Each client trains the prediction head on their local data for <span style="color:red">[specify number of local epochs, e.g., 5]</span> epochs. The loss function is Mean Squared Error (MSE) between predicted and actual DMS scores, optimized using AdamW with learning rate <span style="color:red">[specify learning rate, e.g., 1e-4]</span>.
+2. **Local Training**: Each client trains the prediction head on their local data for **[TODO: specify number of local epochs, e.g., 5]** epochs. The loss function is Mean Squared Error (MSE) between predicted and actual DMS scores, optimized using AdamW with learning rate **[TODO: specify learning rate, e.g., 1e-4]**.
 
 3. **Aggregation**: Clients send only the updated weights of the prediction head back to the server. The server performs weighted averaging of these weights to create a new global model, where weights are proportional to the number of training samples per client.
 
@@ -84,16 +77,16 @@ This process repeats for the specified number of communication rounds until conv
 ### Model Configuration
 
 **BioNeMo Backbone:**
-- Model: <span style="color:red">[specify model name, e.g., ESM-2 or MegaMolBART]</span>
+- Model: **[TODO: specify model name, e.g., ESM-2 or MegaMolBART]**
 - Input: Amino acid sequence of the mutant protein
 - Output: Per-residue or whole-sequence embeddings
 - Status: Frozen (weights not updated during training)
 
 **Prediction Head (MLP):**
-- Number of layers: <span style="color:red">[specify, e.g., 2 or 3 layers]</span>
-- Hidden dimensions: <span style="color:red">[specify, e.g., 512, 256]</span>
-- Activation functions: <span style="color:red">[specify, e.g., ReLU, GELU]</span>
-- Pooling method: <span style="color:red">[specify, e.g., mean pooling or CLS token]</span>
+- Number of layers: **[TODO: specify, e.g., 2 or 3 layers]**
+- Hidden dimensions: **[TODO: specify, e.g., 512, 256]**
+- Activation functions: **[TODO: specify, e.g., ReLU, GELU]**
+- Pooling method: **[TODO: specify, e.g., mean pooling or CLS token]**
 - Output: Single scalar value representing predicted DMS score
 
 ### Evaluation
@@ -101,7 +94,7 @@ This process repeats for the specified number of communication rounds until conv
 After training, evaluate the model performance:
 
 ```bash
-python evaluate.py --model_path <span style="color:red">[path to trained model]</span> --test_data <span style="color:red">[path to test data]</span>
+python evaluate.py --model_path **[TODO: path to trained model]** --test_data **[TODO: path to test data]**
 ```
 
 Metrics include:
@@ -164,7 +157,7 @@ We utilize a **Hydra** approach (also known as a frozen shared backbone with loc
 * The prediction head is added locally on each client and consists of:
   * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector.
   * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen.
-  * **Architecture Details:** <span style="color:red">[To be specified: number of layers, hidden dimensions, activation functions]</span>
+  * **Architecture Details:** **[TODO: To be specified: number of layers, hidden dimensions, activation functions]**
 * **Output:** A single scalar value representing the predicted DMS score.
 * *Note:* By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead. This Hydra architecture enables efficient federated learning by sharing the computationally expensive feature extraction while allowing local personalization of the prediction head.
 
@@ -172,16 +165,16 @@ We utilize a **Hydra** approach (also known as a frozen shared backbone with loc
 
 ## Results
 
-<span style="color:red">[Results to be updated based on final experimental outcomes]</span>
+> **⚠️ TODO:** Results to be updated based on final experimental outcomes
 
 * **Evaluation Metrics:** Spearman's Rank Correlation, Pearson Correlation, Mean Squared Error (MSE), Mean Absolute Error (MAE)
-* **Global Performance:** After <span style="color:red">[specify number of rounds]</span> rounds of federated training, the global model performance compared to baselines
+* **Global Performance:** After **[TODO: specify number of rounds]** rounds of federated training, the global model performance compared to baselines
 * **Baseline Comparisons:** Local Training Only, Centralized Training, Pre-trained Model Only
 
 | Model | Client 1 (Human) | Client 2 (Virus) | Client 3 (Prokaryote) | Client 4 (Eukaryote) | Average  |
 | --- | --- | --- | --- | --- | --- |
-| Local Training Only | <span style="color:red">TBD</span> | <span style="color:red">TBD</span> | <span style="color:red">TBD</span> | <span style="color:red">TBD</span> | <span style="color:red">TBD</span> |
-| **Federated (FedMut)** | **<span style="color:red">TBD</span>** | **<span style="color:red">TBD</span>** | **<span style="color:red">TBD</span>** | **<span style="color:red">TBD</span>** | **<span style="color:red">TBD</span>** |
+| Local Training Only | `TBD` | `TBD` | `TBD` | `TBD` | `TBD` |
+| **Federated (FedProFit)** | **`TBD`** | **`TBD`** | **`TBD`** | **`TBD`** | **`TBD`** |
 
 ---
 
