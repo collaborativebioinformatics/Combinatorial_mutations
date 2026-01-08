@@ -25,7 +25,8 @@ We utilize the **[ProteinGym](https://proteingym.org/)** benchmark, a comprehens
 
 
 <!-- (understanding the data better will update soon.)
-(including M74V;N64S as M at 74th position changed to V and N at 64th position changed to S) -->
+(including M74V;N64S as M at 74th position changed to V and N at 64th position changed to S) 
+data is all substitution -->
 
 For the Federated Learning simulation, we partition the ProteinGym data into semantically meaningful groups to simulate real-world data silos:
 
@@ -34,12 +35,18 @@ For the Federated Learning simulation, we partition the ProteinGym data into sem
 
 We simulate 4 distinct clients based on their `taxon`, each representing a specific domain and utilizing a representative dataset from ProteinGym:
 
-| Node | Client Type | Simulation Scenario | Key Dataset (ProteinGym) |
+<!-- | Node | Client Type | Simulation Scenario | Key Dataset (ProteinGym) |
 | --- | --- | --- | --- |
 | **Client 1** | **Human** | Clinical Hospital / Oncology | `P53_HUMAN` (Tumor suppressor) |
 | **Client 2** | **Virus** | Virology Lab / Pandemic Prep | `SPIKE_SARS2` (Viral entry) |
 | **Client 3** | **Prokaryote** | Antibiotic Resistance Lab | `BLAT_ECOLX` (Beta-lactamase) |
-| **Client 4** | **Eukaryote** | Academic Bio-Foundry | `GAL4_YEAST` (Transcription factor) |
+| **Client 4** | **Eukaryote** | Academic Bio-Foundry | `GAL4_YEAST` (Transcription factor) | -->
+| Node | Client Type | Simulation Scenario | Key Dataset (ProteinGym) |
+| --- | --- | --- | --- |
+| **Client 1** | **Human** | Clinical Hospital / Oncology | ? |
+| **Client 2** | **Virus** | Virology Lab / Pandemic Prep | ? |
+| **Client 3** | **Prokaryote** | Antibiotic Resistance Lab | ?|
+| **Client 4** | **Eukaryote** | Academic Bio-Foundry | ? |
 
 ![clients](./figures/clients.png)
 
@@ -66,8 +73,9 @@ We utilize a **Transfer Learning** approach with a frozen backbone and a trainab
 2. **Trainable Prediction Head:**
 * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector.
 * **Regression MLP:** A multi-layer perceptron stacked on top of the embeddings.
-* Layer 1: Linear () + ReLU + Dropout (0.1)
-* Layer 2: Linear ()
+* Layer 1: ?
+* Layer 2: ?
+
 
 
 * **Output:** A single scalar value representing the predicted DMS score.
@@ -96,6 +104,7 @@ We use the **FedAvg** (Federated Averaging) algorithm.
 
 ### Prerequisites
 
+(need to be updated based on final code)
 * Python 3.8+
 * PyTorch
 * NVIDIA BioNeMo Framework (or HuggingFace Transformers for ESM-2)
@@ -139,7 +148,9 @@ python client.py --client_id 4 --dataset GAL4_YEAST
 
 ## Results
 
-* **Metric:** Spearman's Rank Correlation () between predicted and ground-truth DMS scores.
+(need to be updated based on final code)
+
+* **Metric:** Spearman's Rank Correlation (or something?) between predicted and ground-truth DMS scores.
 * **Global Performance:** After  rounds of federated training, the global model achieves competitive performance compared to centrally trained baselines, while preserving data privacy.
 
 | Model | Client 1 (Human) | Client 2 (Virus) | Client 3 (Prokaryote) | Client 4 (Eukaryote) | Average  |
