@@ -28,9 +28,10 @@ This guide details the exact steps to set up the NVIDIA BioNeMo environment on a
     * Run the following to set up the repo:
     ```bash
     cd ~
-    # Clone your repo (Use your actual repo name, e.g., FedMut)
-    git clone [https://github.com/collaborativebioinformatics/Combinatorial_mutations.git](https://github.com/collaborativebioinformatics/Combinatorial_mutations.git) FedMut
-    cd FedMut
+    # Clone your repo (Use your actual repo name, e.g., FedProFit)
+    cd ~
+    git clone https://github.com/collaborativebioinformatics/FedProFit.git
+    cd FedProFit
     
     # Create necessary data folders
     mkdir -p data/raw data/processed scripts notebooks configs
@@ -56,9 +57,9 @@ BioNeMo lives inside a Docker container. We must "teleport" our code into it and
     ```bash
     docker run --gpus all -it --rm \
         --network=host \
-        -v ~/FedMut:/workspace/project \
+        -v ~/FedProFit:/workspace/project \
         --ipc=host \
-        nvcr.io/nvidia/clara/bionemo-framework:2.4 \
+        nvcr.io/nvidia/clara/bionemo-framework:2.5 \
         bash
     ```
     * **Wait:** The first run will take ~5-10 mins to download the 15GB image.
