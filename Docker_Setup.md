@@ -98,3 +98,4 @@ Once inside the container (`root@...`), run these commands to install NVFlare 2.
 * **Host Terminal (VS Code):** Used for Git commands (`git push`) and file editing.
 * **Docker Terminal (`root@...`):** Used for running Python, Training, and NVFlare simulations.
 * **Exiting Docker:** Type `exit` (Warning: This resets installed packages. You must run Step 4 again next time you launch).
+* **BioNeMo at /workspace/bionemo2/sub-packages/bionemo-esm2/src/bionemo/esm2/scripts/finetune_esm2.py
