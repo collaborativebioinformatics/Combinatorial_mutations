@@ -19,45 +19,41 @@ We aim to predict the DMS score (fitness/stability) of mutant sequences. By util
 
 ## Dataset
 
-We utilize the **[ProteinGym](https://proteingym.org/)** benchmark, a comprehensive collection of deep mutational scanning assays. ProteinGym allows us to evaluate zero-shot and supervised learning performance across diverse protein families.
+To ensure consistent input across all federated clients, we utilize the standardized processed files from the **[ProteinGym](https://proteingym.org/) Substitution Benchmark**. This benchmark comprises approximately **2.4 million missense variants** across **217 DMS assays**.
 
 ![data](./figures/data.png)
 
+Each dataset in our simulation corresponds to a single DMS assay and adheres to the following schema:
 
-<!-- (understanding the data better will update soon.)
-(including M74V;N64S as M at 74th position changed to V and N at 64th position changed to S) 
-data is all substitution -->
+| Variable | Type | Description |
+| --- | --- | --- |
+| **`mutant`** | `str` | A colon-separated string describing the amino acid changes relative to the reference sequence (e.g., **`A1P:D2N`** implies Alanine at position 1  Proline, and Aspartic Acid at position 2  Asparagine). |
+| **`mutated_sequence`** | `str` | The full, explicit amino acid sequence of the variant protein. This serves as the primary input for the BioNeMo feature extractor. |
+| **`DMS_score`** | `float` | The experimental ground-truth value. A **higher** score indicates higher fitness (or functional retention) of the mutated protein. This is the regression target for our model. |
+| **`DMS_score_bin`** | `int` | A binarized classification label based on assay-specific fitness cutoffs (`1` = fit/pathogenic; `0` = not fit/benign). |
 
-For the Federated Learning simulation, we partition the ProteinGym data into semantically meaningful groups to simulate real-world data silos:
+In addition to the raw sequence data, we leverage ProteinGym reference files to partition data by biological domain. Key metadata includes:
 
+* `UniProt ID`: Unique protein identifier.
+* `Taxon`: (e.g., *Human*, *Virus*, *Prokaryote*, *Eukaryote*) Used to assign datasets to the appropriate Federated Client node.
+* `MSA Depth`: Categorical depth of the Multiple Sequence Alignment (Low, Medium, High), used to balance difficulty across clients.
 
 ### Federated Clients Simulation
 
-We simulate 4 distinct clients based on their `taxon`, each representing a specific domain and utilizing a representative dataset from ProteinGym:
+To simulate a realistic cross-institutional collaboration, we partition the full ProteinGym Substitution Benchmark into four distinct client nodes based on biological domain (`Taxon`). We aggregate all available assays corresponding to a specific taxon into a single client node, ensuring that each client possesses a comprehensive and heterogeneous local dataset rather than a single representative protein.
 
-<!-- | Node | Client Type | Simulation Scenario | Key Dataset (ProteinGym) |
-| --- | --- | --- | --- |
-| **Client 1** | **Human** | Clinical Hospital / Oncology | `P53_HUMAN` (Tumor suppressor) |
-| **Client 2** | **Virus** | Virology Lab / Pandemic Prep | `SPIKE_SARS2` (Viral entry) |
-| **Client 3** | **Prokaryote** | Antibiotic Resistance Lab | `BLAT_ECOLX` (Beta-lactamase) |
-| **Client 4** | **Eukaryote** | Academic Bio-Foundry | `GAL4_YEAST` (Transcription factor) | -->
-| Node | Client Type | Simulation Scenario | Key Dataset (ProteinGym) |
-| --- | --- | --- | --- |
-| **Client 1** | **Human** | Clinical Hospital / Oncology | ? |
-| **Client 2** | **Virus** | Virology Lab / Pandemic Prep | ? |
-| **Client 3** | **Prokaryote** | Antibiotic Resistance Lab | ?|
-| **Client 4** | **Eukaryote** | Academic Bio-Foundry | ? |
+| Node | Client Type | Simulation Scenario |
+| --- | --- | --- |
+| **Client 1** | **Human** | **Clinical Hospital / Oncology** |
+| **Client 2** | **Virus** | **Virology Lab / Pandemic Prep** |
+| **Client 3** | **Prokaryote** | **Antibiotic Resistance Lab** |
+| **Client 4** | **Eukaryote** | **Academic Bio-Foundry** |
 
 ![clients](./figures/clients.png)
-
-(will update with real data locked soon)
 
 ---
 
 ## Methodology
-
-<!-- things to be done:
-- correlation between dsm score vs. dsm bins? -->
 
 ### Model Structure
 
