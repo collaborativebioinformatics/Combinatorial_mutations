@@ -9,6 +9,17 @@
   url={https://proceedings.neurips.cc/paper_files/paper/2023/file/cac723e5ff29f65e3fcbb0739ae91bee-Paper-Datasets_and_Benchmarks.pdf}
 }
 
+@article{McMahan2017,
+  title={Communication-Efficient Learning of Deep Networks from Decentralized Data},
+  author={McMahan, Brendan and Moore, Eider and Ramage, Daniel and Hampson, Seth and y Arcas, Blaise Aguera},
+  journal={Proceedings of the 20th International Conference on Artificial Intelligence and Statistics},
+  volume={54},
+  pages={1273--1282},
+  year={2017},
+  publisher={PMLR},
+  url={http://proceedings.mlr.press/v54/mcmahan17a.html}
+}
+
 @article{lin2023evolutionary,
   title={Evolutionary-scale prediction of atomic-level protein structure with a language model},
   author={Lin, Zeming and Akin, Halil and Rao, Roshan and Hie, Brian and Zhu, Zhongkai and Lu, Wenting and Smetanin, Nikita and Verkuil, Robert and Kabeli, Ori and Shmueli, Yaniv and dos Santos Costa, Allan and Fazel-Zarandi, Maryam and Sercu, Tom and Candido, Salvatore and Rives, Alexander},
@@ -24,7 +35,7 @@
 
 @misc{BioNeMo2024,
   title={NVIDIA BioNeMo Framework},
-  author={{NVIDIA Corporation}},
+  author={NVIDIA Corporation},
   year={2024},
   url={https://github.com/NVIDIA/bionemo-framework},
   note={Accessed: 2024}
@@ -66,7 +77,7 @@
   url={https://proceedings.mlsys.org/paper/2020/file/38af86134b65d0f10fe33d30dd76442e-Paper.pdf}
 }
 
-@InProceedings{Karimireddy2020,
+@inproceedings{Karimireddy2020,
   title = 	 {{SCAFFOLD}: Stochastic Controlled Averaging for Federated Learning},
   author =       {Karimireddy, Sai Praneeth and Kale, Satyen and Mohri, Mehryar and Reddi, Sashank and Stich, Sebastian and Suresh, Ananda Theertha},
   booktitle = 	 {Proceedings of the 37th International Conference on Machine Learning},
@@ -82,12 +93,21 @@
   abstract = 	 {Federated learning is a key scenario in modern large-scale machine learning where the data remains distributed over a large number of clients and the task is to learn a centralized model without transmitting the client data. The standard optimization algorithm used in this setting is Federated Averaging (FedAvg) due to its low communication cost. We obtain a tight characterization of the convergence of FedAvg and prove that heterogeneity (non-iid-ness) in the client’s data results in a ‘drift’ in the local updates resulting in poor performance. As a solution, we propose a new algorithm (SCAFFOLD) which uses control variates (variance reduction) to correct for the ‘client drift’. We prove that SCAFFOLD requires significantly fewer communication rounds and is not affected by data heterogeneity or client sampling. Further, we show that (for quadratics) SCAFFOLD can take advantage of similarity in the client’s data yielding even faster convergence. The latter is the first result to quantify the usefulness of local-steps in distributed optimization.}
 }
 
-@misc{Flower2024,
-  title={Flower: A Friendly Federated Learning Framework},
-  author={{Flower Authors}},
-  year={2024},
-  url={https://flower.dev/},
-  note={Accessed: 2024}
+@article{Roth2022,
+  title={{NVIDIA FLARE}: Federated Learning from Simulation to Real-World},
+  author={Roth, Holger R and Cheng, Yan and Wen, Yuhong and Yang, Isaac and Xu, Ziyue and Hsieh, Yuan-Ting and Kersten, Kristopher and Harouni, Ahmed and Zhao, Can and Lu, Kevin and Zhang, Zhihong and Li, Wenqi and Myronenko, Andriy and Yang, Dong and Yang, Sean and Rieke, Nicola and Quraini, Abood and Chen, Chester and Xu, Daguang and Ma, Nic and Dogra, Prerna and Flores, Mona and Feng, Andrew},
+  journal={arXiv preprint arXiv:2210.13291},
+  year={2022},
+  doi={10.48550/arXiv.2210.13291},
+  url={https://arxiv.org/abs/2210.13291}
 }
 
+
+@misc{Yadan2019Hydra,
+  author =       {Omry Yadan},
+  title =        {Hydra - A framework for elegantly configuring complex applications},
+  howpublished = {Github},
+  year =         {2019},
+  url =          {https://github.com/facebookresearch/hydra}
+}
 

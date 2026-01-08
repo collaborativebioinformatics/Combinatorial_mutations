@@ -10,6 +10,24 @@ data/raw/
 __pycache__/
 .ipynb_checkpoints/
 
-./latexcode/**.log
-*.pdf
-*.synctex.gz
+# LaTeX auxiliary and generated files
+# Keep only source files: .tex, .bib, .cls, .sty, .md
+latexcode/*.aux
+latexcode/*.bbl
+latexcode/*.blg
+latexcode/*.log
+latexcode/*.out
+latexcode/*.pdf
+latexcode/*.synctex.gz
+latexcode/*.fdb_latexmk
+latexcode/*.fls
+latexcode/*.figlist
+latexcode/*.makefile
+latexcode/*.toc
+latexcode/*.lof
+latexcode/*.lot
+latexcode/*.nav
+latexcode/*.snm
+latexcode/*.bcf
+latexcode/*.run.xml
+latexcode/*.xdv
