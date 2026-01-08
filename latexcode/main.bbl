@@ -1,0 +1,54 @@
+\begin{thebibliography}{7}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Fowler and Fields(2014)]{Fowler2014}
+Douglas~M Fowler and Stanley Fields.
+\newblock Deep mutational scanning: a new style of protein science.
+\newblock \emph{Nature Methods}, 11\penalty0 (8):\penalty0 801--807, aug 2014.
+\newblock ISSN 1548-7105.
+\newblock \doi{10.1038/nmeth.3027}.
+\newblock URL \url{https://doi.org/10.1038/nmeth.3027}.
+
+\bibitem[Karimireddy et~al.(2020)Karimireddy, Kale, Mohri, Reddi, Stich, and Suresh]{Karimireddy2020}
+Sai~Praneeth Karimireddy, Satyen Kale, Mehryar Mohri, Sashank Reddi, Sebastian Stich, and Ananda~Theertha Suresh.
+\newblock Scaffold: Stochastic controlled averaging for federated learning.
+\newblock \emph{International Conference on Machine Learning}, pages 5132--5143, 2020.
+\newblock URL \url{http://proceedings.mlr.press/v119/karimireddy20a.html}.
+
+\bibitem[Li et~al.(2020)Li, Sahu, Zaheer, Sanjabi, Talwalkar, and Smith]{Li2020}
+Tian Li, Anit~Kumar Sahu, Manzil Zaheer, Maziar Sanjabi, Ameet Talwalkar, and Virginia Smith.
+\newblock Federated optimization in heterogeneous networks.
+\newblock \emph{Proceedings of Machine Learning and Systems}, 2:\penalty0 429--450, 2020.
+\newblock URL \url{https://proceedings.mlsys.org/paper/2020/file/38af86134b65d0f10fe33d30dd76442e-Paper.pdf}.
+
+\bibitem[Lin et~al.(2023)Lin, Akin, Rao, Hie, Zhu, Lu, Smetanin, Verkuil, Kabeli, Shmueli, dos Santos~Costa, Fazel-Zarandi, Sercu, Candido, and Rives]{lin2023evolutionary}
+Zeming Lin, Halil Akin, Roshan Rao, Brian Hie, Zhongkai Zhu, Wenting Lu, Nikita Smetanin, Robert Verkuil, Ori Kabeli, Yaniv Shmueli, Allan dos Santos~Costa, Maryam Fazel-Zarandi, Tom Sercu, Salvatore Candido, and Alexander Rives.
+\newblock Evolutionary-scale prediction of atomic-level protein structure with a language model.
+\newblock \emph{Science}, 379\penalty0 (6637):\penalty0 1123--1130, 2023.
+\newblock \doi{10.1126/science.ade2574}.
+\newblock URL \url{https://www.science.org/doi/abs/10.1126/science.ade2574}.
+\newblock Earlier versions as preprint: bioRxiv 2022.07.20.500902.
+
+\bibitem[McMahan et~al.(2017)McMahan, Moore, Ramage, Hampson, and y~Arcas]{McMahan2017}
+Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, and Blaise~Aguera y~Arcas.
+\newblock Communication-efficient learning of deep networks from decentralized data.
+\newblock \emph{Proceedings of the 20th International Conference on Artificial Intelligence and Statistics}, 54:\penalty0 1273--1282, 2017.
+\newblock URL \url{http://proceedings.mlr.press/v54/mcmahan17a.html}.
+
+\bibitem[Meier et~al.(2021)Meier, Rao, Verkuil, Liu, Sercu, and Rives]{Meier2021}
+Joshua Meier, Roshan Rao, Robert Verkuil, Jason Liu, Tom Sercu, and Alexander Rives.
+\newblock Language models enable zero-shot prediction of the effects of mutations on protein function.
+\newblock \emph{Advances in Neural Information Processing Systems}, 34:\penalty0 29287--29303, 2021.
+\newblock Preprint at bioRxiv.
+
+\bibitem[Notin et~al.(2023)Notin, Kollasch, Ritter, van Niekerk, Paul, Spinner, Rollins, Shaw, Orenbuch, Weitzman, Frazer, Dias, Franceschi, Gal, and Marks]{Notin2023}
+Pascal Notin, Aaron~W Kollasch, Daniel Ritter, Lood van Niekerk, Steffanie Paul, Hannah Spinner, Nathan Rollins, Arthur Shaw, Ruben Orenbuch, Rose Weitzman, Jonathan Frazer, Mafalda Dias, Dina Franceschi, Yarin Gal, and Debora~S Marks.
+\newblock Proteingym: Large-scale benchmarks for protein fitness prediction and design.
+\newblock \emph{Advances in Neural Information Processing Systems}, 36:\penalty0 64331--64379, 2023.
+\newblock URL \url{https://proceedings.neurips.cc/paper_files/paper/2023/file/cac723e5ff29f65e3fcbb0739ae91bee-Paper-Datasets_and_Benchmarks.pdf}.
+
+\end{thebibliography}
