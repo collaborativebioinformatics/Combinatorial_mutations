@@ -1,0 +1,203 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage[round,comma,authoryear]{natbib}
+\usepackage[colorlinks=true,citecolor=blue,linkcolor=black,urlcolor=blue]{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{FedMut: Federated Prediction of Combinatorial Mutation Effects Using Pre-trained Protein Language Models}
+\author{Bhanvi Paliwal, Caiwei Zhang, Jiayi Zhao, Sihyun Park, Sumeet Kothare, Ushta Samal}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Predicting the functional effects of combinatorial mutations is a critical challenge in protein engineering and evolutionary biology. While Deep Mutational Scanning (DMS) provides ground-truth fitness landscapes, the data is often siloed across different institutions and sparse due to the vast combinatorial space of mutations. We present FedMut, a federated learning framework that enables collaborative training of DMS score prediction models across distributed datasets without sharing raw sequence data. Our approach leverages pre-trained protein language models from NVIDIA BioNeMo as feature extractors, combined with a trainable regression head that is optimized using Federated Averaging (FedAvg). We evaluate our method on the ProteinGym Substitution Benchmark, comprising approximately 2.4 million missense variants across 217 DMS assays, partitioned into four federated clients based on biological domain (Human, Virus, Prokaryote, Eukaryote). By freezing the protein language model backbone and only training the prediction head in a federated manner, we hope to reduce communication overhead while maintaining competitive predictive performance. Our framework addresses key challenges in cross-institutional collaboration for protein fitness prediction, enabling privacy-preserving model training that benefits from diverse biological datasets.
+\end{abstract}
+
+\section{Introduction}
+
+Protein engineering and evolutionary biology rely on understanding how mutations affect protein function and stability. Deep Mutational Scanning (DMS) experiments provide comprehensive fitness landscapes by systematically quantifying the effects of mutations on protein function \citep{Fowler2014}. However, the combinatorial space of mutations is vast, rendering exhaustive experimental characterization infeasible. Consequently, computational methods that accurately predict DMS scores from protein sequences are essential for guiding protein design and elucidating evolutionary constraints.
+
+Recent advances in protein language models, such as ESM-2 \citep{lin2023evolutionary} and models available through NVIDIA BioNeMo \citep{BioNeMo2024}, have demonstrated remarkable capabilities in learning meaningful representations of protein sequences from large-scale unlabeled data. These pre-trained models can be fine-tuned or used as feature extractors for downstream tasks including fitness prediction \citep{Meier2021,Notin2023}.
+
+Despite these advances, a significant challenge remains: DMS data is often distributed across different institutions—hospitals, academic laboratories, and industry—each with their own proprietary or sensitive datasets. Traditional centralized training approaches require sharing raw sequence data, which raises privacy concerns and may be infeasible due to regulatory constraints or competitive interests. Federated learning (FL) offers a promising solution by enabling collaborative model training without data sharing \citep{McMahan2017}.
+
+In this work, we introduce FedMut, a federated learning framework for predicting DMS scores that addresses both the sparsity and siloed nature of mutation effect data. By leveraging pre-trained protein language models as frozen feature extractors, we minimize computational and communication costs while enabling privacy-preserving collaborative training across multiple institutions. We demonstrate our approach on the ProteinGym Substitution Benchmark, simulating a realistic cross-institutional collaboration scenario with four distinct client nodes representing different biological domains.
+
+\section{Methods}
+
+\subsection{Dataset}
+
+We utilize the ProteinGym Substitution Benchmark \citep{Notin2023}, a standardized collection of approximately 2.4 million missense variants across 217 DMS assays. This benchmark provides consistent input formats and evaluation protocols, making it ideal for federated learning simulations. Each dataset in our simulation corresponds to a single DMS assay and adheres to the following schema:
+
+\begin{itemize}
+    \item \textbf{mutant}: A colon-separated string describing amino acid changes relative to the reference sequence (e.g., \texttt{A1P:D2N} indicates Alanine at position 1 $\rightarrow$ Proline, and Aspartic Acid at position 2 $\rightarrow$ Asparagine).
+    \item \textbf{mutated\_sequence}: The full, explicit amino acid sequence of the variant protein, serving as the primary input for the protein language model feature extractor.
+    \item \textbf{DMS\_score}: The experimental ground-truth value, where higher scores indicate higher fitness or functional retention of the mutated protein. This serves as the regression target.
+    \item \textbf{DMS\_score\_bin}: A binarized classification label based on assay-specific fitness cutoffs (1 = fit/pathogenic; 0 = not fit/benign).
+\end{itemize}
+
+In addition to sequence data, we leverage ProteinGym metadata including UniProt IDs, taxonomic classification (Taxon), and Multiple Sequence Alignment (MSA) depth to partition and balance data across federated clients.
+
+\subsection{Federated Client Simulation}
+
+To simulate a realistic cross-institutional collaboration, we partition the ProteinGym Substitution Benchmark into four distinct client nodes based on biological domain (Taxon). We aggregate all available assays corresponding to a specific taxon into a single client node, ensuring that each client possesses a comprehensive and heterogeneous local dataset rather than a single representative protein. The client assignments are as follows:
+
+\begin{table}[h]
+\centering
+\caption{Federated client nodes and their simulation scenarios}
+\label{tab:clients}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Node} & \textbf{Client Type} & \textbf{Simulation Scenario} \\
+\midrule
+Client 1 & Human & Clinical Hospital / Oncology \\
+Client 2 & Virus & Virology Lab / Pandemic Prep \\
+Client 3 & Prokaryote & Antibiotic Resistance Lab \\
+Client 4 & Eukaryote & Academic Bio-Foundry \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/clients.png}
+\caption{Distribution of DMS assays across federated client nodes based on biological domain.}
+\label{fig:clients}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{../figures/data.png}
+\caption{Overview of the ProteinGym dataset structure and data schema.}
+\label{fig:data}
+\end{figure}
+
+\subsection{Model Architecture}
+
+We employ a transfer learning approach with a frozen backbone and a locally trainable prediction head. This design choice minimizes communication overhead and computational requirements on edge clients while leveraging powerful pre-trained representations.
+
+\subsubsection{Frozen Backbone (BioNeMo)}
+
+We use a pre-trained Protein Language Model (e.g., ESM-2 or MegaMolBART via NVIDIA BioNeMo) as the encoder. The model takes as input the amino acid sequence of the mutant protein (e.g., \texttt{M1A, ...}) and outputs per-residue or whole-sequence embeddings. All weights in this encoder are frozen during federated training to:
+\begin{enumerate}
+    \item Reduce communication overhead (only prediction head weights are transmitted)
+    \item Minimize computational requirements on edge clients
+    \item Leverage representations learned from massive protein databases
+\end{enumerate}
+
+\subsubsection{Trainable Prediction Head}
+
+The prediction head is added locally on each client and consists of two components:
+\begin{itemize}
+    \item \textbf{Pooling Layer}: Aggregates the sequence embedding into a fixed-size vector using mean pooling or the \texttt{<CLS>} token representation.
+    \item \textbf{Regression MLP}: A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen. The architecture details (number of layers, hidden dimensions, activation functions) are to be determined during hyperparameter optimization.
+\end{itemize}
+
+The output is a single scalar value representing the predicted DMS score. By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead.
+
+\subsection{Federated Learning Protocol}
+
+We employ the Federated Averaging (FedAvg) algorithm \citep{McMahan2017} for collaborative training. The training process proceeds as follows:
+
+\begin{enumerate}
+    \item \textbf{Initialization}: The central server initializes the weights of the prediction head and distributes them to all four clients. The BioNeMo backbone is pre-loaded on all clients.
+    
+    \item \textbf{Local Training}: Each client trains the prediction head on their local data for a specified number of epochs. The loss function is Mean Squared Error (MSE) between predicted and actual DMS scores, optimized using AdamW.
+    
+    \item \textbf{Aggregation}: Clients send only the updated weights of the prediction head back to the server. The server performs weighted averaging of these weights to create a new global model, where weights are proportional to the number of training samples per client.
+    
+    \item \textbf{Distribution}: The updated global model is sent back to clients for the next round of federated training.
+\end{enumerate}
+
+This process repeats for a predetermined number of communication rounds.
+
+\section{Results}
+
+% Results section - to be filled in when experimental results are available
+
+\subsection{Evaluation Metrics}
+
+We evaluate model performance using Spearman's rank correlation coefficient between predicted and ground-truth DMS scores, which is robust to non-linear relationships and commonly used in protein fitness prediction benchmarks \citep{Notin2023}. Additional metrics including Pearson correlation, mean squared error, and mean absolute error will be reported.
+
+\subsection{Baseline Comparisons}
+
+We compare our federated learning approach (FedMut) against several baselines:
+\begin{itemize}
+    \item \textbf{Local Training Only}: Each client trains independently on their local data without federated aggregation.
+    \item \textbf{Centralized Training}: A baseline where all data is pooled and trained centrally (simulating the ideal but often infeasible scenario).
+    \item \textbf{Pre-trained Model Only}: Using the frozen backbone without fine-tuning the prediction head.
+\end{itemize}
+
+\subsection{Performance Results}
+
+% Table and results to be filled in when available
+
+After [X] rounds of federated training, the global model performance will be evaluated on held-out test sets for each client. The results will be reported in the following format:
+
+\begin{table}[h]
+\centering
+\caption{Model performance comparison across federated clients}
+\label{tab:results}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Model} & \textbf{Client 1} & \textbf{Client 2} & \textbf{Client 3} & \textbf{Client 4} & \textbf{Average} \\
+ & \textbf{(Human)} & \textbf{(Virus)} & \textbf{(Prokaryote)} & \textbf{(Eukaryote)} & \\
+\midrule
+Local Training Only & TBD & TBD & TBD & TBD & TBD \\
+Federated (FedMut) & TBD & TBD & TBD & TBD & TBD \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Privacy and Communication Efficiency}
+
+We will analyze the communication overhead of our federated approach compared to centralized training, demonstrating the efficiency gains from freezing the backbone. Additionally, we will discuss the privacy guarantees provided by the federated learning framework.
+
+\section{Discussion}
+
+Our FedMut framework addresses critical challenges in collaborative protein fitness prediction by enabling privacy-preserving model training across distributed datasets. The use of frozen pre-trained protein language models as feature extractors provides a practical solution that balances performance, computational efficiency, and communication overhead.
+
+The federated learning approach is particularly well-suited for the protein engineering domain, where data is often siloed across institutions due to proprietary interests, regulatory constraints, or competitive advantages. By allowing multiple institutions to collaboratively improve a shared model without sharing raw sequence data, FedMut enables the scientific community to leverage diverse biological datasets while respecting data privacy and ownership.
+
+The partitioning of data by biological domain (Human, Virus, Prokaryote, Eukaryote) creates a realistic non-IID (non-independent and identically distributed) scenario that is common in federated learning applications. This heterogeneity tests the robustness of the FedAvg algorithm and may reveal opportunities for domain-specific adaptations or personalized federated learning approaches.
+
+\subsection{Future Directions}
+
+Several directions for future work are promising:
+
+\begin{enumerate}
+    \item \textbf{Architecture Optimization}: Systematic hyperparameter search for the regression MLP architecture, including layer depth, hidden dimensions, dropout rates, and activation functions.
+    
+    \item \textbf{Advanced Federated Algorithms}: Exploration of federated learning algorithms beyond FedAvg, such as FedProx \citep{Li2020} or SCAFFOLD \citep{Karimireddy2020}, which may better handle the non-IID data distribution across biological domains.
+    
+    \item \textbf{Multi-task Learning}: Extending the framework to simultaneously predict both continuous DMS scores and binary fitness classifications, potentially improving generalization.
+    
+    \item \textbf{Real-world Deployment}: Validation of the framework with actual distributed institutions, addressing practical challenges such as network latency, client availability, and data quality heterogeneity.
+    
+    \item \textbf{Interpretability}: Incorporating attention visualization or gradient-based methods to understand which sequence regions contribute most to fitness predictions, providing biological insights alongside predictions.
+    
+    \item \textbf{Combinatorial Mutation Modeling}: Extending beyond single and double mutations to more complex combinatorial mutation patterns, potentially using graph neural networks or attention mechanisms to model interactions between mutation sites.
+\end{enumerate}
+
+\section{Conclusion}
+
+FedMut presents a novel federated learning framework for predicting combinatorial mutation effects that addresses key challenges in cross-institutional protein fitness prediction. By combining pre-trained protein language models with federated learning, we enable privacy-preserving collaborative training that can leverage diverse biological datasets while maintaining computational efficiency. Our approach demonstrates the potential for federated learning to advance protein engineering and evolutionary biology research by breaking down data silos and enabling collaborative model development.
+
+\section*{Acknowledgements}
+
+We thank ProteinGym \citep{Notin2023} for providing the benchmarking datasets and NVIDIA BioNeMo for the foundational protein language models. This work was supported by [funding information to be added].
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

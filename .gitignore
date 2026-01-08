@@ -9,3 +9,7 @@ data/raw/
 # Ignore python cache
 __pycache__/
 .ipynb_checkpoints/
+
+./latexcode/**.log
+*.pdf
+*.synctex.gz

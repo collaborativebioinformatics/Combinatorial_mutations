@@ -15,6 +15,8 @@ This project addresses these challenges by leveraging **Federated Learning (FL)*
 
 We aim to predict the DMS score (fitness/stability) of mutant sequences. By utilizing [NVIDIA BioNeMo](https://github.com/NVIDIA/bionemo-framework) pre-trained models as a feature extractor, we benefit from representations learned on massive protein databases while keeping the computational cost of local training low.
 
+![overview](./figures/workflow.png)
+
 ---
 
 ## Dataset
@@ -29,7 +31,7 @@ Each dataset in our simulation corresponds to a single DMS assay and adheres to 
 | --- | --- | --- |
 | **`mutant`** | `str` | A colon-separated string describing the amino acid changes relative to the reference sequence (e.g., **`A1P:D2N`** implies Alanine at position 1  Proline, and Aspartic Acid at position 2  Asparagine). |
 | **`mutated_sequence`** | `str` | The full, explicit amino acid sequence of the variant protein. This serves as the primary input for the BioNeMo feature extractor. |
-| **`DMS_score`** | `float` | The experimental ground-truth value. A **higher** score indicates higher fitness (or functional retention) of the mutated protein. This is the regression target for our model. |
+| **`DMS_score`** | `float` | The experimental ground-truth value. A higher score indicates higher fitness (or functional retention) of the mutated protein. This is the regression target for our model. |
 | **`DMS_score_bin`** | `int` | A binarized classification label based on assay-specific fitness cutoffs (`1` = fit/pathogenic; `0` = not fit/benign). |
 
 In addition to the raw sequence data, we leverage ProteinGym reference files to partition data by biological domain. Key metadata includes:
@@ -57,44 +59,21 @@ To simulate a realistic cross-institutional collaboration, we partition the full
 
 ### Model Structure
 
-We utilize a **Transfer Learning** approach with a frozen backbone and a trainable regression head.
+We utilize a **Transfer Learning** approach with a frozen backbone and a locally trainable prediction head.
 
 1. **Frozen Backbone (BioNeMo):**
 * We use a pre-trained Protein Language Model (e.g., ESM-2 or MegaMolBART via NVIDIA BioNeMo) as the encoder.
 * **Input:** Amino acid sequence of the mutant (e.g., `M1A, ...`).
-* **Output:** Per-residue or whole-sequence embeddings ().
+* **Output:** Per-residue or whole-sequence embeddings.
 * *Note:* All weights in this encoder are **frozen** to reduce communication overhead and computational requirements on edge clients.
 
-
-2. **Trainable Prediction Head:**
-* **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector.
-* **Regression MLP:** A multi-layer perceptron stacked on top of the embeddings.
-* Layer 1: ?
-* Layer 2: ?
-
-
-
+2. **Trainable Prediction Head (Added Locally):**
+* The prediction head is added locally on each client and consists of:
+  * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector.
+  * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen.
 * **Output:** A single scalar value representing the predicted DMS score.
+* *Note:* By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead.
 
-
-<!-- 
-### Training Process (Federated)
-
-We use the **FedAvg** (Federated Averaging) algorithm.
-
-1. **Initialization:** The central server initializes the weights of the **Prediction Head** and distributes them to all 4 clients. The BioNeMo backbone is pre-loaded on all clients.
-2. **Local Training:**
-* Each client trains the Prediction Head on their local data (e.g., Client 1 trains only on `P53`).
-* Loss Function: Mean Squared Error (MSE) between predicted and actual DMS scores.
-* Optimizer: AdamW.
-
-
-3. **Aggregation:**
-* Clients send *only* the updated weights (gradients) of the Prediction Head back to the server.
-* The server averages these weights to create a new global model.
-
-
-4. **Distribution:** The updated global model is sent back to clients for the next round. -->
 
 ## How to use
 
@@ -161,10 +140,9 @@ python client.py --client_id 4 --dataset GAL4_YEAST
 
 ## Team Members
 
-- Ustha
-- Maggie
-- Sihyun
-- Jiayi
-- Bhanvi
-- Ramith
-- Sumeet
+- Bhanvi Paliwal
+- Caiwei (Maggie) Zhang
+- Jiayi Zhao
+- Sihyun Park
+- Sumeet Kothare
+- Ushta Samal
