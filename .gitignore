@@ -1,0 +1,11 @@
+# Ignore huge model weights
+*.pt
+*.nemo
+*.ckpt
+
+# Ignore raw data if it's huge (optional)
+data/raw/
+
+# Ignore python cache
+__pycache__/
+.ipynb_checkpoints/
