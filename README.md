@@ -34,12 +34,12 @@
 
 ## What Problem Does This Solve?
 
-Predicting the functional effects of combinatorial mutations is a critical challenge in protein engineering and evolutionary biology. While Deep Mutational Scanning (DMS) provides ground-truth fitness landscapes, the data faces two major challenges:
+Predicting the functional effects of combinatorial mutations is a critical challenge in protein engineering and evolutionary biology. While Deep Mutational Scanning (DMS) [[1]](#references) provides ground-truth fitness landscapes, the data faces two major challenges:
 
 1. **Siloed Data:** DMS data is distributed across different institutions (hospitals, academic labs, industry), each with proprietary or sensitive datasets that cannot be easily shared.
 2. **Sparse Coverage:** The combinatorial space of mutations is astronomically vast, making exhaustive experimental characterization infeasible.
 
-**FedProFit** addresses these challenges by enabling collaborative machine learning across distributed DMS datasets **without sharing raw sequence data**. Our framework leverages federated learning to train predictive models that benefit from diverse biological datasets while maintaining data privacy and ownership.
+**FedProFit** addresses these challenges by enabling collaborative machine learning across distributed DMS datasets **without sharing raw sequence data**. Our framework leverages federated learning [[2]](#references) to train predictive models that benefit from diverse biological datasets while maintaining data privacy and ownership.
 
 ![overview](./figures/workflow.png)
 
@@ -133,7 +133,7 @@ python analysis/evaluate_model.py \
 
 ## Dataset
 
-To ensure consistent input across all federated clients, we utilize the standardized processed files from the **[ProteinGym](https://proteingym.org/) Substitution Benchmark**. This benchmark comprises approximately **2.4 million missense variants** across **217 DMS assays**.
+To ensure consistent input across all federated clients, we utilize the standardized processed files from the **[ProteinGym](https://proteingym.org/) Substitution Benchmark** [[3]](#references). This benchmark comprises approximately **2.4 million missense variants** across **217 DMS assays**.
 
 ![data](./figures/data.png)
 
@@ -169,25 +169,24 @@ To simulate a realistic cross-institutional collaboration, we partition the full
 
 ## Model Architecture
 
-We utilize a **Hydra** approach (also known as a frozen shared backbone with local heads), which is a **Transfer Learning** strategy with a frozen backbone and locally trainable prediction heads. This architecture pattern allows each client to maintain a shared frozen feature extractor while training personalized prediction heads locally.
+We utilize a **Hydra** approach [[4]](#references) (also known as a frozen shared backbone with local heads), which is a **Transfer Learning** strategy with a frozen backbone and locally trainable prediction heads. This architecture pattern allows each client to maintain a shared frozen feature extractor while training personalized prediction heads locally.
 
 ### Frozen Backbone (BioNeMo)
 
-* **Model:** ESM-2 650M (via NVIDIA BioNeMo)
+* **Model:** ESM-2 650M (via NVIDIA BioNeMo [[5]](#references))
 * **Input:** Amino acid sequence of the mutant protein (e.g., `M1A, ...`)
 * **Output:** Per-residue or whole-sequence embeddings
 * **Status:** Frozen (weights not updated during training) — see `--encoder-frozen` flag in training scripts
-* **Note:** All weights in this encoder are **frozen** to reduce communication overhead and computational requirements on edge clients
 
 ### Trainable Prediction Head (Added Locally)
 
 * The prediction head is added locally on each client and consists of:
   * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector
   * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen
-  * **Architecture Details:** **[TODO: To be specified: number of layers, hidden dimensions, activation functions]**
 * **Output:** A single scalar value representing the predicted DMS score
 * **Training:** Only the prediction head weights are updated during federated learning
-* **Note:** By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead. This Hydra architecture enables efficient federated learning by sharing the computationally expensive feature extraction while allowing local personalization of the prediction head.
+
+![model_architecture](./figures/modelarc.png)
 
 For detailed model configuration and hyperparameters, see **[SETUP.md](SETUP.md#3-training-the-execution-script)** and the training scripts.
 
@@ -210,9 +209,9 @@ For detailed model configuration and hyperparameters, see **[SETUP.md](SETUP.md#
 
 ## Acknowledgements
 
-* [ProteinGym](https://proteingym.org/) for the benchmarking datasets.
-* [NVIDIA BioNeMo](https://www.nvidia.com/en-us/clara/bionemo/) for the foundational protein models.
-* [NVIDIA FLARE](https://github.com/NVIDIA/NVFlare) for the federated learning infrastructure.
+* [ProteinGym](https://proteingym.org/) [[3]](#references) for the benchmarking datasets.
+* [NVIDIA BioNeMo](https://www.nvidia.com/en-us/clara/bionemo/) [[5]](#references) for the foundational protein models.
+* [NVIDIA FLARE](https://github.com/NVIDIA/NVFlare) [[6]](#references) for the federated learning infrastructure.
 * FedProFit logo designed using Gemini NanoBanana with our specifications.
 
 ## Team Members
@@ -223,3 +222,19 @@ For detailed model configuration and hyperparameters, see **[SETUP.md](SETUP.md#
 - Sihyun Park
 - Sumeet Kothare
 - Ushta Samal
+
+---
+
+## References
+
+[1] Fowler, D. M., & Fields, S. (2014). Deep mutational scanning: a new style of protein science. *Nature Methods*, 11(8), 801-807. https://doi.org/10.1038/nmeth.3027
+
+[2] McMahan, H. B., Moore, E., Ramage, D., & y Arcas, B. A. (2016). Federated Learning of Deep Networks using Model Averaging. *arXiv preprint arXiv:1602.05629*. http://arxiv.org/abs/1602.05629
+
+[3] Notin, P., Kollasch, A. W., Ritter, D., et al. (2023). ProteinGym: Large-Scale Benchmarks for Protein Design and Fitness Prediction. *bioRxiv*. https://doi.org/10.1101/2023.12.07.570727
+
+[4] Yadan, O. (2019). Hydra - A framework for elegantly configuring complex applications. *GitHub*. https://github.com/facebookresearch/hydra
+
+[5] St. John, P., Lin, D., Binder, P., et al. (2025). BioNeMo Framework: a modular, high-performance library for AI model development in drug discovery. *arXiv preprint arXiv:2411.10548*. https://arxiv.org/abs/2411.10548
+
+[6] Roth, H. R., Cheng, Y., Wen, Y., et al. (2022). NVIDIA FLARE: Federated Learning from Simulation to Real-World. *arXiv preprint arXiv:2210.13291*. https://doi.org/10.48550/arXiv.2210.13291
