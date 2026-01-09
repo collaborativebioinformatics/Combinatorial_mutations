@@ -2,6 +2,7 @@
 *.pt
 *.nemo
 *.ckpt
+*.csv
 
 # Ignore raw data if it's huge (optional)
 data/raw/
