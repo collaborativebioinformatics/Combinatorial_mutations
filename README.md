@@ -152,6 +152,14 @@ In addition to the raw sequence data, we leverage ProteinGym reference files to 
 * `Taxon`: (e.g., *Human*, *Virus*, *Prokaryote*, *Eukaryote*) Used to assign datasets to the appropriate Federated Client node.
 * `MSA Depth`: Categorical depth of the Multiple Sequence Alignment (Low, Medium, High), used to balance difficulty across clients.
 
+The datasets exhibit varying sensitivity to the number of mutations, as illustrated by the fitness distributions across different mutation counts:
+
+![Virus fitness distribution](./figures/aav2s_fitness_distribution.png)
+*DMS score distribution across different numbers of mutations for AAV2S (Virus domain). Higher mutation counts show increased variance in fitness scores.*
+
+![Human fitness distribution](./figures/yap1_fitness_distribution.png)
+*DMS score distribution for YAP1 (Human domain) with up to 2 mutations. Human proteins typically have fewer combinatorial mutations in the benchmark.*
+
 ### Federated Clients Simulation
 
 To simulate a realistic cross-institutional collaboration, we partition the full ProteinGym Substitution Benchmark into four distinct client nodes based on biological domain (`Taxon`). We aggregate all available assays corresponding to a specific taxon into a single client node, ensuring that each client possesses a comprehensive and heterogeneous local dataset rather than a single representative protein.
@@ -177,16 +185,17 @@ We utilize a **Hydra** approach [[4]](#references) (also known as a frozen share
 * **Input:** Amino acid sequence of the mutant protein (e.g., `M1A, ...`)
 * **Output:** Per-residue or whole-sequence embeddings
 * **Status:** Frozen (weights not updated during training) — see `--encoder-frozen` flag in training scripts
+* **Note:** All weights in this encoder are **frozen** to reduce communication overhead and computational requirements on edge clients
 
 ### Trainable Prediction Head (Added Locally)
 
 * The prediction head is added locally on each client and consists of:
   * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector
   * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen
+  * **Architecture Details:** **[TODO: To be specified: number of layers, hidden dimensions, activation functions]**
 * **Output:** A single scalar value representing the predicted DMS score
 * **Training:** Only the prediction head weights are updated during federated learning
-
-![model_architecture](./figures/modelarc.png)
+* **Note:** By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead. This Hydra architecture enables efficient federated learning by sharing the computationally expensive feature extraction while allowing local personalization of the prediction head.
 
 For detailed model configuration and hyperparameters, see **[SETUP.md](SETUP.md#3-training-the-execution-script)** and the training scripts.
 
