@@ -39,6 +39,8 @@ python $TRAIN_SCRIPT \
     --save-top-k 1 \
     --metric-to-monitor-for-checkpoints val_loss \
     --save-last-checkpoint \
-    --avoid-ckpt-async-save
+    --avoid-ckpt-async-save \
+    --limit-val-batches 1.0 \
+    --encoder-frozen # Freeze the ESM2 Encoder or comment if you want to fine-tune the whole model
 
 echo "✅ Run Complete! Logs are in $RESULT_DIR"
