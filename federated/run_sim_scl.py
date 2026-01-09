@@ -14,6 +14,7 @@ from nvflare.app_common.launchers.subprocess_launcher import SubprocessLauncher
 from nvflare.app_common.widgets.decomposer_reg import DecomposerRegister
 from nvflare.app_common.workflows.fedavg import FedAvg
 from nvflare.app_opt.pt.job_config.base_fed_job import BaseFedJob
+from nvflare.app_opt.pt.file_model_persistor import PTFileModelPersistor
 from nvflare.job_config.script_runner import BaseScriptRunner
 
 
@@ -33,9 +34,13 @@ def main(args):
     controller = FedAvg(
         num_clients=len(CLIENT_MAP),
         num_rounds=args.num_rounds,
+        #key_metric="val_loss"
     )
     job.to_server(controller)
     job.to_server(DecomposerRegister(["nvflare.app_opt.pt.decomposers.TensorDecomposer"]))
+
+    #job.to_server(TorchModelPersistor(model_file_name="esm2_aggregated_model.pt"))
+    job.to_server(PTFileModelPersistor(global_model_file_name="esm2_aggregated_model.pt"))
 
     # Use Local Model Checkpoint
     checkpoint_path = "/workspace/project/esm2_650m.nemo"
@@ -180,7 +185,8 @@ if __name__ == "__main__":
     parser.add_argument("--label_column", type=str, default="DMS_score", help="Column for labels")
     parser.add_argument("--target_size", type=int, default=1, help="MLP target size")
     parser.add_argument("--encoder-frozen", action="store_true", help="Freeze encoder")
-    parser.add_argument("--limit-val-batches", type=float, default=1.0, help="Limit validation batches (1.0 = all)")
+    #parser.add_argument("--limit-val-batches", type=float, default=1.0, help="Limit validation batches (1.0 = all)")
+    parser.add_argument("--limit-val-batches", type=int, default=10, help="Number of validation batches (Int)")
 
     args = parser.parse_args()
     args.num_clients = 0 

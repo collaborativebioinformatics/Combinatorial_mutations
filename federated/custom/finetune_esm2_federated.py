@@ -41,7 +41,7 @@ from nemo.lightning.pytorch.optim import MegatronOptimizerModule
 
 # (1) import nvflare lightning client API
 import nvflare.client.lightning as flare
-
+import nvflare.client.api as flare_api
 
 def train_model(
     # ... keep all your existing arguments exactly the same ...
@@ -348,17 +348,22 @@ def train_model(
     print(" Preparing result for Server...")
     
     # Extract weights to CPU numpy/tensors
-    output_state_dict = {k: v.cpu().numpy() for k, v in module.state_dict().items()}
+    output_state_dict = {
+        k: v.cpu().numpy() 
+        for k, v in module.state_dict().items() 
+        if v is not None
+    }
     
     # Calculate Val Loss for aggregation (optional, but good practice)
     val_loss = float(trainer.callback_metrics.get("val_loss", 0.0))
 
-    output_model = flare.FLModel(
+    output_model = flare_api.FLModel(
         params=output_state_dict,
         metrics={"val_loss": val_loss}
     )
 
-    flare.send(output_model)
+    #flare.send(output_model) # COmmenting out to avoid failure of flare.send() i.e. for lightning import
+    flare_api.send(output_model)
     print(" Model sent to server manually.")
 
     if checkpoint_callback:
