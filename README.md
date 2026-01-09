@@ -21,6 +21,12 @@
     <a href="https://pytorch.org/">
       <img src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
     </a>
+    <a href="https://github.com/NVIDIA/NVFlare">
+      <img src="https://img.shields.io/badge/NVIDIA_FLARE-76B900?logo=nvidia&logoColor=white" alt="NVIDIA FLARE">
+    </a>
+    <a href="https://www.nvidia.com/en-us/clara/bionemo/">
+      <img src="https://img.shields.io/badge/NVIDIA_BioNeMo-76B900?logo=nvidia&logoColor=white" alt="NVIDIA BioNeMo">
+    </a>
   </p>
 </div>
 
@@ -207,6 +213,7 @@ We utilize a **Hydra** approach (also known as a frozen shared backbone with loc
 * [ProteinGym](https://proteingym.org/) for the benchmarking datasets.
 * [NVIDIA BioNeMo](https://www.nvidia.com/en-us/clara/bionemo/) for the foundational protein models.
 * [NVIDIA FLARE](https://github.com/NVIDIA/NVFlare) for the federated learning infrastructure.
+* FedProFit logo designed using Gemini NanoBanana with our specifications.
 
 ## Team Members
 
