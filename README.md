@@ -1,9 +1,30 @@
-# FedProFit: Federated Prediction of Combinatorial Protein Sequence Mutation Effects on Protein Function
+<div align="center">
+  <img src="FedProFit/figures/FedProFit-logo.png" alt="FedProFit Logo" width="200" height="auto">
 
-**Predicting Deep Mutational Scanning (DMS) scores using Pre-trained Protein Language Models in a Federated Environment.**
+  <h1>FedProFit: Federated Protein Fitness</h1>
+  
+  <h3>
+    Federated Prediction of Combinatorial Protein Sequence Mutation Effects on Protein Function using BioNeMo and NVIDIA Flare.
+  </h3>
 
-[![Summary](https://img.shields.io/badge/Paper-PDF-red)](latexcode/main.pdf)
+  <p>
+    <strong>Predicting Deep Mutational Scanning (DMS) scores using Pre-trained Protein Language Models in a Federated Environment.</strong>
+  </p>
 
+  <p>
+    <a href="latexcode/main.pdf">
+      <img src="https://img.shields.io/badge/Paper-PDF-red" alt="Paper PDF">
+    </a>
+    <a href="https://www.python.org/">
+      <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python 3.8+">
+    </a>
+    <a href="https://pytorch.org/">
+      <img src="https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white" alt="PyTorch">
+    </a>
+  </p>
+</div>
+
+<br/>
 ## What Problem Does This Solve?
 
 Predicting the functional effects of combinatorial mutations is a critical challenge in protein engineering and evolutionary biology. While Deep Mutational Scanning (DMS) provides ground-truth fitness landscapes, the data faces two major challenges:
