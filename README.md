@@ -152,13 +152,13 @@ In addition to the raw sequence data, we leverage ProteinGym reference files to 
 * `Taxon`: (e.g., *Human*, *Virus*, *Prokaryote*, *Eukaryote*) Used to assign datasets to the appropriate Federated Client node.
 * `MSA Depth`: Categorical depth of the Multiple Sequence Alignment (Low, Medium, High), used to balance difficulty across clients.
 
-The datasets exhibit varying sensitivity to the number of mutations, as illustrated by the fitness distributions across different mutation counts:
+The datasets exhibit varying characteristics across biological domains, as illustrated by the following analyses:
 
-![Virus fitness distribution](./figures/aav2s_fitness_distribution.png)
-*DMS score distribution across different numbers of mutations for AAV2S (Virus domain). Higher mutation counts show increased variance in fitness scores.*
+![Taxon distribution](./figures/taxon_species_protein_distribution_2x2.png)
+*Distribution of species and proteins across different taxa (Human, Virus, Prokaryote, Eukaryote) in the ProteinGym benchmark.*
 
-![Human fitness distribution](./figures/yap1_fitness_distribution.png)
-*DMS score distribution for YAP1 (Human domain) with up to 2 mutations. Human proteins typically have fewer combinatorial mutations in the benchmark.*
+![Cross-kingdom fitness decay](./figures/cross_kingdom_fitness_decay_2x2.png)
+*Fitness decay patterns across different kingdoms as mutation count increases, showing domain-specific sensitivity to combinatorial mutations.*
 
 ### Federated Clients Simulation
 
@@ -177,42 +177,37 @@ To simulate a realistic cross-institutional collaboration, we partition the full
 
 ## Model Architecture
 
-We utilize a **Hydra** approach [[4]](#references) (also known as a frozen shared backbone with local heads), which is a **Transfer Learning** strategy with a frozen backbone and locally trainable prediction heads. This architecture pattern allows each client to maintain a shared frozen feature extractor while training personalized prediction heads locally.
+We utilize a **Hydra** approach [[4]](#references) with a frozen backbone and locally trainable prediction heads, enabling efficient federated learning while reducing communication overhead.
 
-### Frozen Backbone (BioNeMo)
+![Model Architecture](./figures/modelarc.png)
 
-* **Model:** ESM-2 650M (via NVIDIA BioNeMo [[5]](#references))
-* **Input:** Amino acid sequence of the mutant protein (e.g., `M1A, ...`)
-* **Output:** Per-residue or whole-sequence embeddings
-* **Status:** Frozen (weights not updated during training) — see `--encoder-frozen` flag in training scripts
-* **Note:** All weights in this encoder are **frozen** to reduce communication overhead and computational requirements on edge clients
+**Frozen Backbone (BioNeMo):**
+- ESM-2 650M (via NVIDIA BioNeMo [[5]](#references))
+- Input: Amino acid sequence → Output: Protein embeddings
+- Status: Frozen (see `--encoder-frozen` flag)
 
-### Trainable Prediction Head (Added Locally)
+**Trainable Prediction Head:**
+- Pooling layer + Regression MLP (added locally per client)
+- Output: Predicted DMS score
+- Only prediction head weights are communicated during federated learning
 
-* The prediction head is added locally on each client and consists of:
-  * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector
-  * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen
-  * **Architecture Details:** **[TODO: To be specified: number of layers, hidden dimensions, activation functions]**
-* **Output:** A single scalar value representing the predicted DMS score
-* **Training:** Only the prediction head weights are updated during federated learning
-* **Note:** By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead. This Hydra architecture enables efficient federated learning by sharing the computationally expensive feature extraction while allowing local personalization of the prediction head.
-
-For detailed model configuration and hyperparameters, see **[SETUP.md](SETUP.md#3-training-the-execution-script)** and the training scripts.
+For detailed configuration, see **[SETUP.md](SETUP.md#3-training-the-execution-script)**.
 
 ---
 
 ## Results
 
-> **⚠️ TODO:** Results to be updated based on final experimental outcomes
+FedProFit enables prediction of DMS scores for combinatorial mutations across distributed datasets. The federated model learns from multiple biological domains while preserving data privacy.
 
-* **Evaluation Metrics:** Spearman's Rank Correlation, Pearson Correlation, Mean Squared Error (MSE), Mean Absolute Error (MAE)
-* **Global Performance:** After **[TODO: specify number of rounds]** rounds of federated training, the global model performance compared to baselines
-* **Baseline Comparisons:** Local Training Only, Centralized Training, Pre-trained Model Only
+### Performance Metrics
 
-| Model | Client 1 (Human) | Client 2 (Virus) | Client 3 (Prokaryote) | Client 4 (Eukaryote) | Average  |
+| Model | Client 1 (Human) | Client 2 (Virus) | Client 3 (Prokaryote) | Client 4 (Eukaryote) | Average |
 | --- | --- | --- | --- | --- | --- |
 | Local Training Only | `TBD` | `TBD` | `TBD` | `TBD` | `TBD` |
+| Centralized Training | `TBD` | `TBD` | `TBD` | `TBD` | `TBD` |
 | **Federated (FedProFit)** | **`TBD`** | **`TBD`** | **`TBD`** | **`TBD`** | **`TBD`** |
+
+*Metrics: Spearman's rank correlation, Pearson correlation, MSE, MAE*
 
 ---
 
