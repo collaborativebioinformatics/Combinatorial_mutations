@@ -14,7 +14,7 @@ from nvflare.app_common.launchers.subprocess_launcher import SubprocessLauncher
 from nvflare.app_common.widgets.decomposer_reg import DecomposerRegister
 from nvflare.app_common.workflows.fedavg import FedAvg
 from nvflare.app_opt.pt.job_config.base_fed_job import BaseFedJob
-from nvflare.app_opt.pt.file_model_persistor import PTFileModelPersistor
+from nvflare.app_opt.pt.file_model_persistor import PTFileModelPersistor 
 from nvflare.job_config.script_runner import BaseScriptRunner
 
 
@@ -30,17 +30,23 @@ def main(args):
     # Create BaseFedJob
     job = BaseFedJob(name=f"{args.exp_name}_scl_esm2_{args.model}")
 
+
     # Define the controller
     controller = FedAvg(
         num_clients=len(CLIENT_MAP),
         num_rounds=args.num_rounds,
-        #key_metric="val_loss"
+        allow_empty_global_weights=True,
+        #persistor_id=persistor_id,
+        #key_metric="val_loss",
     )
     job.to_server(controller)
     job.to_server(DecomposerRegister(["nvflare.app_opt.pt.decomposers.TensorDecomposer"]))
 
     #job.to_server(TorchModelPersistor(model_file_name="esm2_aggregated_model.pt"))
-    job.to_server(PTFileModelPersistor(global_model_file_name="esm2_aggregated_model.pt"))
+    persistor_id = job.to_server(
+    PTFileModelPersistor(global_model_file_name="esm2_aggregated_model.pt"),
+    id="persistor",
+    )
 
     # Use Local Model Checkpoint
     checkpoint_path = "/workspace/project/esm2_650m.nemo"
