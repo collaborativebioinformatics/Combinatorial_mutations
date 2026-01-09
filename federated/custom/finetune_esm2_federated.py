@@ -260,7 +260,13 @@ def train_model(
     )
 
     # add NVFlare metric streamer to capture continues tensorboard output on the server.
-    from bionemo_tb_streamer import BioNeMoTBStreamer
+    from custom.bionemo_tb_streamer import BioNeMoTBStreamer
+
+    from nvflare.client.lightning import FLCallback
+
+    # trainer sends weights back to the server
+    trainer.callbacks.append(FLCallback()) 
+
 
     trainer.callbacks.append(BioNeMoTBStreamer(start_step=input_model.current_round * num_steps))
 
@@ -419,6 +425,7 @@ def train_model(
 
 def finetune_esm2_entrypoint():
     """Entrypoint for running ESM2 finetuning."""
+    flare.init()
     # 1. get arguments
     parser = get_parser()
 
@@ -440,7 +447,7 @@ def finetune_esm2_entrypoint():
         classes = None
 
     # to avoid padding for single value labels:
-    if args.min_seq_length is not None and args.datset_class is InMemorySingleValueDataset:
+    if args.min_seq_length is not None and args.dataset_class is InMemorySingleValueDataset:
         parser.error("Arguments --min-seq-length cannot be set when using InMemorySingleValueDataset.")
 
     # 2. Call pretrain with args

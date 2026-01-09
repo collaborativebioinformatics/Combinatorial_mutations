@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Configuration
-LR="1e-4"
-STEPS="1000"           
+LR="1e-3"
+STEPS="8000"           
 BATCH_SIZE="8"
 
 # 1. Pointing to local results (since the mount failed)

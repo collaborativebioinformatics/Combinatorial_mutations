@@ -69,7 +69,10 @@ BioNeMo lives inside a Docker container. We must "teleport" our code into it and
     ```
     * **Wait:** The first run will take ~5-10 mins to download the 15GB image.
     * **Success:** Your prompt will change to `root@<container-id>:/workspace/bionemo2#`.
-
+    * Next also download nvflare for a federated workflow:
+    ```bash
+    pip install nvflare
+    ```
 ---
 
 ##  Step 4: Dependency & Version Fixes
