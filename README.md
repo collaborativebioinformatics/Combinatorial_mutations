@@ -41,8 +41,6 @@ Predicting the functional effects of combinatorial mutations is a critical chall
 
 **FedProFit** addresses these challenges by enabling collaborative machine learning across distributed DMS datasets **without sharing raw sequence data**. Our framework leverages federated learning [[2]](#references) to train predictive models that benefit from diverse biological datasets while maintaining data privacy and ownership.
 
-![overview](./figures/workflow.png)
-
 ---
 
 ## How to Use
