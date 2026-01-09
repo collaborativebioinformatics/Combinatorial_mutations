@@ -39,6 +39,7 @@ python3 run_sim_scl.py \
     --task_type $TASK_TYPE \
     --label_column $LABEL_COL \
     --target_size $TARGET_SIZE \
+    --limit-val-batches 1.0 \
     $FROZEN_FLAG
 
 echo "Simulation Finished."

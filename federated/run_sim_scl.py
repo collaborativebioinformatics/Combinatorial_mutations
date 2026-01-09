@@ -85,10 +85,9 @@ def main(args):
             f"--result-dir bionemo "
             f"--micro-batch-size {args.batch_size} "       
             f"--precision {precision} "
-            f"--save-top-k 0 "
-            f"--limit-val-batches 1.0 "
+            f"--save-top-k 1 "
+            f"--limit-val-batches {args.limit_val_batches} "
             f"--save-last-checkpoint "
-            f"--avoid-ckpt-async-save "
         )
 
         if args.encoder_frozen:
@@ -181,6 +180,7 @@ if __name__ == "__main__":
     parser.add_argument("--label_column", type=str, default="DMS_score", help="Column for labels")
     parser.add_argument("--target_size", type=int, default=1, help="MLP target size")
     parser.add_argument("--encoder-frozen", action="store_true", help="Freeze encoder")
+    parser.add_argument("--limit-val-batches", type=float, default=1.0, help="Limit validation batches (1.0 = all)")
 
     args = parser.parse_args()
     args.num_clients = 0 
