@@ -12,7 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copied and adapted for NVFlare from https://github.com/NVIDIA/bionemo-framework/blob/main/sub-packages/bionemo-esm2/src/bionemo/esm2/scripts/finetune_esm2.py
+"""
+Repo-style NVFlare adaptation of BioNeMo ESM2 finetuning for federated learning.
+
+Key goals:
+- Use nvflare.client.lightning.patch(trainer, ...) so FL state transfer is handled correctly.
+- Receive FLModel once per round for round/site metadata (not for manual weight loading).
+- Robust TensorBoard logging:
+    * Create exactly ONE TB logger per site per round
+    * Attach it to the Lightning Trainer (trainer.logger)
+    * Avoid double-logging via NeMo logger
+- Avoid local checkpoint collisions (common error: "checkpoint destination directory is not empty"):
+    * Disable per-client checkpoint callbacks by default in FL
+    * Server-side aggregation persists the global model; client local checkpoints are optional
+"""
+
+from __future__ import annotations
 
 import shutil
 from pathlib import Path
@@ -21,17 +36,22 @@ from typing import Optional
 from bionemo.core.utils.dtypes import PrecisionTypes, get_autocast_dtype
 from bionemo.esm2.data.tokenizer import get_tokenizer
 from bionemo.esm2.model.finetune.datamodule import ESM2FineTuneDataModule
-from bionemo.esm2.model.finetune.dataset import InMemoryProteinDataset, InMemorySingleValueDataset
+from bionemo.esm2.model.finetune.dataset import (
+    InMemoryProteinDataset,
+    InMemorySingleValueDataset,
+)
 from bionemo.esm2.model.finetune.sequence_model import ESM2FineTuneSeqConfig
 
-# Resue parser and config constants from bionemo
 from bionemo.esm2.scripts.finetune_esm2 import get_parser
 from bionemo.llm.model.biobert.lightning import biobert_lightning_module
 from bionemo.llm.model.biobert.model import BioBertConfig
 from bionemo.llm.model.config import TorchmetricsConfig
 from bionemo.llm.utils.datamodule_utils import infer_global_batch_size
 from bionemo.llm.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
+
 from lightning.pytorch.callbacks import Callback, LearningRateMonitor, RichModelSummary
+from lightning.pytorch.loggers import TensorBoardLogger
+
 from megatron.core.distributed import DistributedDataParallelConfig
 from megatron.core.optimizer import OptimizerConfig
 from nemo import lightning as nl
@@ -39,12 +59,18 @@ from nemo.collections import llm
 from nemo.lightning.pytorch import callbacks as nl_callbacks
 from nemo.lightning.pytorch.optim import MegatronOptimizerModule
 
-# (1) import nvflare lightning client API
+# NVFlare Lightning client API (repo style)
 import nvflare.client.lightning as flare
-import nvflare.client.api as flare_api
+
+
+def _safe_float(x: object, default: float = 0.0) -> float:
+    try:
+        return float(x)  # type: ignore[arg-type]
+    except Exception:
+        return default
+
 
 def train_model(
-    # ... keep all your existing arguments exactly the same ...
     train_data_path: Path,
     valid_data_path: Path,
     num_nodes: int,
@@ -53,7 +79,7 @@ def train_model(
     max_seq_length: int,
     result_dir: Path,
     num_steps: int,
-    limit_val_batches: int,
+    limit_val_batches: float,
     val_check_interval: int,
     log_every_n_steps: Optional[int],
     num_dataset_workers: int,
@@ -67,9 +93,11 @@ def train_model(
     encoder_frozen: bool = False,
     scale_lr_layer: Optional[str] = None,
     lr_multiplier: float = 1.0,
+    # single value classification / regression mlp
     mlp_ft_dropout: float = 0.25,
     mlp_hidden_size: int = 256,
     mlp_target_size: int = 1,
+    # token-level classification cnn
     cnn_dropout: float = 0.25,
     cnn_hidden_size: int = 32,
     cnn_num_classes: int = 3,
@@ -100,11 +128,26 @@ def train_model(
     average_in_collective: bool = True,
     grad_reduce_in_fp32: bool = False,
     label_column: str = "labels",
-    classes: list[str] = None,
-) -> tuple[Path, Callback | None, nl.Trainer]:
+    classes: list[str] | None = None,
+) -> tuple[Optional[Path], Callback | None, nl.Trainer]:
+    """
+    Federated client training entrypoint. This runs ONE local training "round".
 
-    # Create the result directory if it does not exist.
+    Important:
+    - In FL, the server usually stores the aggregated global model.
+    - Client local checkpoints are typically disabled to avoid directory collisions and disk bloat.
+    """
+
     result_dir.mkdir(parents=True, exist_ok=True)
+
+    global_batch_size = infer_global_batch_size(
+        micro_batch_size=micro_batch_size,
+        num_nodes=num_nodes,
+        devices=devices,
+        accumulate_grad_batches=accumulate_grad_batches,
+        tensor_model_parallel_size=tensor_model_parallel_size,
+        pipeline_model_parallel_size=pipeline_model_parallel_size,
+    )
 
     strategy = nl.MegatronStrategy(
         tensor_model_parallel_size=tensor_model_parallel_size,
@@ -139,22 +182,34 @@ def train_model(
         )
     )
 
-    callbacks = [
-        RichModelSummary(max_depth=4),
-        LearningRateMonitor(),
-        nl_callbacks.PreemptionCallback(),
+    callbacks: list[Callback] = [
+    RichModelSummary(max_depth=4),
+    nl_callbacks.PreemptionCallback(),
     ]
+    if create_tensorboard_logger:
+        callbacks.insert(1, LearningRateMonitor())
     if metric_tracker is not None:
         callbacks.append(metric_tracker)
+
     if nsys_profiling:
         if nsys_end_step is None:
             nsys_end_step = num_steps
         callbacks.append(
             nl_callbacks.NsysCallback(
-                start_step=nsys_start_step, end_step=nsys_end_step, ranks=nsys_ranks, gen_shape=True
+                start_step=nsys_start_step,
+                end_step=nsys_end_step,
+                ranks=nsys_ranks,
+                gen_shape=True,
             )
         )
+    
 
+    
+
+    # ------------------------------------------------------------
+    # 1) Create Trainer first (no TB logger yet), then patch, then receive.
+    #    We set TB logger AFTER we know site/round to avoid collisions.
+    # ------------------------------------------------------------
     trainer = nl.Trainer(
         devices=devices,
         max_steps=num_steps,
@@ -165,6 +220,8 @@ def train_model(
         log_every_n_steps=log_every_n_steps,
         num_nodes=num_nodes,
         callbacks=callbacks,
+        logger=False,  # keep False here intentionally
+        enable_checkpointing=False,
         plugins=nl.MegatronMixedPrecision(
             precision=precision,
             params_dtype=get_autocast_dtype(precision),
@@ -174,59 +231,92 @@ def train_model(
         ),
     )
 
-    # ---------------------------------------------------------
-    # CHANGE 1: REMOVED flare.patch(trainer)
-    # ---------------------------------------------------------
+    # --- CRITICAL: repo-style patch ---
+    # This wires up FL state handling into Trainer fit loop.
+    flare.patch(trainer, restore_state=False, load_state_dict_strict=False)
 
-    # ---------------------------------------------------------
-    # CHANGE 2: Manual Receive
-    # ---------------------------------------------------------
-    import torch 
+    # Receive FLModel (use it for round/site metadata; patch handles weights internally)
     input_model = flare.receive()
-    print(f"\n[Current Round={input_model.current_round}, Site = {flare.get_site_name()}]\n")
+    current_round = int(getattr(input_model, "current_round", 0))
+    site = flare.get_site_name()
 
-    # Add TB streamer
-    from custom.bionemo_tb_streamer import BioNeMoTBStreamer
-    trainer.callbacks.append(BioNeMoTBStreamer(start_step=input_model.current_round * num_steps))
+    print(
+        f"\n[FL] Site={site} Round={current_round} "
+        f"(params={len(input_model.params) if getattr(input_model, 'params', None) else 0})\n"
+    )
 
-    # ---------------------------------------------------------
-    # CHANGE 3: REMOVED manually appending FLCallback
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------
+    # 2) Round-scoped output directory (important for TB + avoiding collisions)
+    # ------------------------------------------------------------
+    round_dir = result_dir / f"round{current_round}"
+    round_dir.mkdir(parents=True, exist_ok=True)
 
-    # Directory management
-    keep_last_ckpt_only = True
-    if keep_last_ckpt_only:
-        previous_ckpt_dir = (
-            result_dir / f"round{input_model.current_round - 1}" / experiment_name / "dev" / "checkpoints"
+    # ------------------------------------------------------------
+    # 3) TensorBoard (ONE logger per site per round)
+    # ------------------------------------------------------------
+    if create_tensorboard_logger:
+        tb_logger = TensorBoardLogger(
+            save_dir=str(round_dir / "tb_logs"),
+            name=experiment_name,
+            version=f"{site}_round{current_round}",
         )
-        if previous_ckpt_dir.is_dir():
-            print(f"Removing previous checkpoint directory {previous_ckpt_dir}")
-            shutil.rmtree(previous_ckpt_dir)
+        trainer.logger = tb_logger
 
-    result_dir = result_dir / f"round{input_model.current_round}"
 
-    # LR Scheduling
-    if input_model.current_round > 0:
+    # Optional: add your custom TB streamer if it exists (it can push round-aligned steps)
+    try:
+        from custom.bionemo_tb_streamer import BioNeMoTBStreamer  # type: ignore
+        start_step = current_round * num_steps
+        trainer.callbacks.append(BioNeMoTBStreamer(start_step=start_step))
+        print(f"[TB] Attached BioNeMoTBStreamer(start_step={start_step})")
+    except Exception:
+        # Not required; TB will still work via trainer.logger if enabled
+        pass
+
+    # Optional: clean previous round local checkpoints if your environment creates them anyway
+    # (Some stacks may still create dist-ckpt folders during training)
+    keep_last_ckpt_only = True
+    if keep_last_ckpt_only and current_round > 0:
+        prev_round_dir = result_dir / f"round{current_round - 1}"
+        prev_ckpt_dir = prev_round_dir / experiment_name / "dev" / "checkpoints"
+        if prev_ckpt_dir.is_dir():
+            try:
+                print(f"[Cleanup] Removing previous checkpoint directory: {prev_ckpt_dir}")
+                shutil.rmtree(prev_ckpt_dir)
+            except Exception as e:
+                print(f"[Cleanup] Warning: failed to remove {prev_ckpt_dir}: {repr(e)}")
+
+    # ------------------------------------------------------------
+    # 4) LR schedule tweak per round (optional)
+    # ------------------------------------------------------------
+    if current_round > 0:
         lr_step_reduce = 1.05
-        new_lr = lr / (input_model.current_round * lr_step_reduce)
-        new_lr_multiplier = lr_multiplier / (input_model.current_round * lr_step_reduce)
-        print(f"Reduce lr {lr} by {input_model.current_round * lr_step_reduce}: {new_lr}")
+        denom = max(1.0, current_round * lr_step_reduce)
+        new_lr = lr / denom
+        new_lr_multiplier = lr_multiplier / denom
+        print(f"[LR] Round={current_round}: lr {lr} -> {new_lr} (denom={denom})")
     else:
         new_lr = lr
         new_lr_multiplier = lr_multiplier
 
+    # ------------------------------------------------------------
+    # 5) Data
+    # ------------------------------------------------------------
     tokenizer = get_tokenizer()
 
-    train_dataset = dataset_class.from_csv(train_data_path, task_type=task_type, label_column=label_column)
-    valid_dataset = dataset_class.from_csv(valid_data_path, task_type=task_type, label_column=label_column)
-    if task_type == "classification" and classes:
-         train_dataset.label_tokenizer.build_vocab([classes])
+    train_dataset = dataset_class.from_csv(
+        train_data_path, task_type=task_type, label_column=label_column
+    )
+    valid_dataset = dataset_class.from_csv(
+        valid_data_path, task_type=task_type, label_column=label_column
+    )
 
-    # ---------------------------------------------------------
-    # FIX from LLM: Calculate global_batch_size manually
-    # Global BS = Micro BS * Devices (GPUs) * Nodes * Grad Accumulation
-    # ---------------------------------------------------------
-    global_batch_size = micro_batch_size * devices * num_nodes * accumulate_grad_batches
+    if task_type == "classification":
+        if classes:
+            if not isinstance(classes, list):
+                raise ValueError(f"classes must be list[str], got {type(classes)}: {classes}")
+            train_dataset.label_tokenizer.build_vocab([classes])
+            print(f"[Data] Built label vocab from classes: {classes}")
 
     data_module = ESM2FineTuneDataModule(
         train_dataset=train_dataset,
@@ -239,10 +329,16 @@ def train_model(
         tokenizer=tokenizer,
     )
 
-    # Metrics
+    # ------------------------------------------------------------
+    # 6) Metrics config
+    # ------------------------------------------------------------
     train_metric = None
     if task_type == "regression":
-        valid_metric = TorchmetricsConfig(class_path="MeanSquaredError", task="regression", metric_name="val_mse")
+        valid_metric = TorchmetricsConfig(
+            class_path="MeanSquaredError",
+            task="regression",
+            metric_name="val_mse",
+        )
     else:
         valid_metric = TorchmetricsConfig(
             class_path="Accuracy",
@@ -255,6 +351,10 @@ def train_model(
             metric_name="val_acc",
         )
 
+    # ------------------------------------------------------------
+    # 7) Model config (ESM2 finetune)
+    #    NOTE: This DOES add/enable the task head (regression head for task_type=regression).
+    # ------------------------------------------------------------
     config = config_class(
         task_type=task_type,
         encoder_frozen=encoder_frozen,
@@ -263,12 +363,14 @@ def train_model(
         autocast_dtype=get_autocast_dtype(precision),
         tensor_model_parallel_size=tensor_model_parallel_size,
         pipeline_model_parallel_size=pipeline_model_parallel_size,
-        initial_ckpt_path=str(restore_from_checkpoint_path),
+        initial_ckpt_path=str(restore_from_checkpoint_path) if restore_from_checkpoint_path else None,
+        # In FL: skip loading head weights from the base checkpoint so head can be trained cleanly
         initial_ckpt_skip_keys_with_these_prefixes=[f"{task_type}_head"],
         train_metric=train_metric,
         valid_metric=valid_metric,
     )
 
+    # Apply task-dependent head params if present on config
     task_dependent_attr = {
         "mlp_ft_dropout": mlp_ft_dropout,
         "mlp_hidden_size": mlp_hidden_size,
@@ -289,51 +391,29 @@ def train_model(
             weight_decay=0.01,
             adam_beta1=0.9,
             adam_beta2=0.98,
-        ),
+        )
     )
     if scale_lr_layer:
         optimizer.scale_lr_cond = lambda name, param: scale_lr_layer in name
         optimizer.lr_mult = new_lr_multiplier
 
-    # Create the Lightning Module
     module = biobert_lightning_module(config=config, tokenizer=tokenizer, optimizer=optimizer)
 
-    # ---------------------------------------------------------
-    # CHANGE 4: Manually Load Global Weights into Module
-    # ---------------------------------------------------------
-    if input_model.params:
-        print(f" Loading {len(input_model.params)} layers from Global Model...")
-        # Convert params to CPU tensors
-        incoming_state = {k: torch.as_tensor(v) for k, v in input_model.params.items()}
-        
-        # Load logic (handles potential prefix mismatches if necessary)
-        missing, unexpected = module.load_state_dict(incoming_state, strict=False)
-        print(f"   Loaded. Missing keys: {len(missing)}, Unexpected keys: {len(unexpected)}")
-    else:
-        print("No params received (Round 0). Using initial checkpoint weights.")
-
-    save_local_ckpt = False
-    if save_local_ckpt:
-        checkpoint_callback = nl_callbacks.ModelCheckpoint(
-            save_last=save_last_checkpoint,
-            monitor=metric_to_monitor_for_checkpoints,
-            save_top_k=save_top_k,
-            every_n_train_steps=val_check_interval,
-            always_save_context=True,
-            filename="checkpoint-{step}-{consumed_samples}",
-        )
-    else:
-        checkpoint_callback = None
-
+    # ------------------------------------------------------------
+    # 8) NeMo logger (avoid double TB)
+    #    We rely on trainer.logger for TensorBoard if enabled.
+    # ------------------------------------------------------------
     nemo_logger = setup_nemo_lightning_logger(
-        root_dir=result_dir,
+        root_dir=round_dir,
         name=experiment_name,
-        initialize_tensorboard_logger=create_tensorboard_logger,
+        initialize_tensorboard_logger=False,  # IMPORTANT: avoid duplicating TB logs
         wandb_config=wandb_config,
-        ckpt_callback=checkpoint_callback,
+        ckpt_callback=None,  # FL: no per-client checkpoint callback by default
     )
 
-    # Perform Training
+    # ------------------------------------------------------------
+    # 9) Train
+    # ------------------------------------------------------------
     llm.train(
         model=module,
         data=data_module,
@@ -342,93 +422,70 @@ def train_model(
         resume=None,
     )
 
-    # ---------------------------------------------------------
-    # CHANGE 5: Manually Extract and Send
-    # ---------------------------------------------------------
-    print(" Preparing result for Server...")
-    
-    # Extract weights to CPU numpy/tensors
-    output_state_dict = {
-        k: v.cpu().numpy() 
-        for k, v in module.state_dict().items() 
-        if v is not None
-    }
-    
-    # Calculate Val Loss for aggregation (optional, but good practice)
-    val_loss = float(trainer.callback_metrics.get("val_loss", 0.0))
 
-    output_model = flare_api.FLModel(
-        params=output_state_dict,
-        metrics={"val_loss": val_loss}
-    )
+    # Helpful debug: show which metrics Lightning knows about
+    try:
+        print("[Metrics] callback_metrics keys:", list(trainer.callback_metrics.keys()))
+        print("[Metrics] logged_metrics keys:", list(trainer.logged_metrics.keys()))
+    except Exception:
+        pass
 
-    #flare.send(output_model) # COmmenting out to avoid failure of flare.send() i.e. for lightning import
-    flare_api.send(output_model)
-    print(" Model sent to server manually.")
-
-    if checkpoint_callback:
-        ckpt_path = Path(checkpoint_callback.last_model_path.replace(".ckpt", ""))
-    else:
-        ckpt_path = None
+    # In FL, we generally do NOT return a checkpoint path (server aggregates model state)
+    ckpt_path = None
     return ckpt_path, metric_tracker, trainer
 
 
-def finetune_esm2_entrypoint():
-    """Entrypoint for running ESM2 finetuning."""
+def finetune_esm2_entrypoint() -> None:
     flare.init()
-    # 1. get arguments
+
     parser = get_parser()
 
-    # Add some FL specific arguments
+    # Add a small convenience option for classification class labels
     parser.add_argument(
         "--classes",
         type=str,
         required=False,
         default=None,
-        help="Unique strings describing the classes for classification. Used to build the same label vocabulary on each client. Should be comma separate list of strings, e.g. 'pos,neg'",
+        help="Comma-separated class names for classification, e.g. 'pos,neg'. Only used when --task-type classification.",
     )
+
     args = parser.parse_args()
 
     if args.classes:
         if args.task_type != "classification":
-            parser.error("Use --classes argument only with --task-type 'classification'")
+            parser.error("Use --classes only with --task-type 'classification'")
         classes = args.classes.split(",")
     else:
         classes = None
 
-    # ---------------------------------------------------------
-    # CRITICAL FIX: Convert String to Class
-    # ---------------------------------------------------------
-    # The command line argument comes in as a string (e.g. "InMemorySingleValueDataset")
-    # We must convert it to the actual Class object.
-    
+    # Convert dataset_class string -> class object (needed for CLI usage)
     if isinstance(args.dataset_class, str):
         if args.dataset_class == "InMemorySingleValueDataset":
             actual_dataset_class = InMemorySingleValueDataset
         elif args.dataset_class == "InMemoryProteinDataset":
             actual_dataset_class = InMemoryProteinDataset
         else:
-            # Fallback or error if an unknown string is passed
-            print(f"Warning: Unknown dataset_class string '{args.dataset_class}'. Defaulting to InMemorySingleValueDataset.")
+            print(
+                f"Warning: Unknown dataset_class string '{args.dataset_class}'. "
+                "Defaulting to InMemorySingleValueDataset."
+            )
             actual_dataset_class = InMemorySingleValueDataset
     else:
-        # If it's already a class (some parsers handle this, but rare via CLI)
         actual_dataset_class = args.dataset_class
-    # ---------------------------------------------------------
 
-    # to avoid padding for single value labels:
+    # Avoid padding for single value labels:
     if args.min_seq_length is not None and actual_dataset_class is InMemorySingleValueDataset:
         parser.error("Arguments --min-seq-length cannot be set when using InMemorySingleValueDataset.")
 
-    # 2. Call pretrain with args
+    # Note: args.create_tensorboard_logger is expected from BioNeMo parser
     train_model(
-        train_data_path=args.train_data_path,
-        valid_data_path=args.valid_data_path,
+        train_data_path=Path(args.train_data_path),
+        valid_data_path=Path(args.valid_data_path),
         num_nodes=args.num_nodes,
         devices=args.num_gpus,
         min_seq_length=args.min_seq_length,
         max_seq_length=args.max_seq_length,
-        result_dir=args.result_dir,
+        result_dir=Path(args.result_dir),
         wandb_entity=args.wandb_entity,
         wandb_project=args.wandb_project,
         wandb_tags=args.wandb_tags,
@@ -438,11 +495,11 @@ def finetune_esm2_entrypoint():
         wandb_log_model=args.wandb_log_model,
         wandb_offline=args.wandb_offline,
         num_steps=args.num_steps,
-        limit_val_batches=args.limit_val_batches,
+        limit_val_batches=_safe_float(args.limit_val_batches, default=1.0),
         val_check_interval=args.val_check_interval,
         log_every_n_steps=args.log_every_n_steps,
         num_dataset_workers=args.num_dataset_workers,
-        lr=args.lr,
+        lr=float(args.lr),
         micro_batch_size=args.micro_batch_size,
         pipeline_model_parallel_size=args.pipeline_model_parallel_size,
         tensor_model_parallel_size=args.tensor_model_parallel_size,
@@ -452,11 +509,9 @@ def finetune_esm2_entrypoint():
         encoder_frozen=args.encoder_frozen,
         scale_lr_layer=args.scale_lr_layer,
         lr_multiplier=args.lr_multiplier,
-        # single value classification / regression mlp
         mlp_ft_dropout=args.mlp_ft_dropout,
         mlp_hidden_size=args.mlp_hidden_size,
         mlp_target_size=args.mlp_target_size,
-        # token-level classification cnn
         cnn_dropout=args.cnn_dropout,
         cnn_hidden_size=args.cnn_hidden_size,
         cnn_num_classes=args.cnn_num_classes,
@@ -470,7 +525,7 @@ def finetune_esm2_entrypoint():
         nsys_start_step=args.nsys_start_step,
         nsys_end_step=args.nsys_end_step,
         nsys_ranks=args.nsys_ranks,
-        dataset_class=actual_dataset_class,  # <--- CHANGED HERE
+        dataset_class=actual_dataset_class,
         config_class=args.config_class,
         overlap_grad_reduce=args.overlap_grad_reduce,
         overlap_param_gather=not args.no_overlap_param_gather,
@@ -478,6 +533,7 @@ def finetune_esm2_entrypoint():
         grad_reduce_in_fp32=args.grad_reduce_in_fp32,
         label_column=args.label_column,
         classes=classes,
+        create_tensorboard_logger=bool(getattr(args, "create_tensorboard_logger", False)),
     )
 
 

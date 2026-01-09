@@ -1,45 +1,57 @@
 #!/bin/bash
+set -euo pipefail
 
-# FEDERATED LEARNING LAUNCHER (NVFlare Sim)
+export PYTHONPATH="$(pwd)${PYTHONPATH:+:${PYTHONPATH}}"
 
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+# ---------------------------
+# CENTRALIZED-ALIGNED CONFIG
+# ---------------------------
+TOTAL_STEPS="8000"
+ROUNDS="160"
+LOCAL_STEPS="50"
 
-# --- 1. FEDERATED CONFIGURATION ---
-ROUNDS=5            # Number of times server aggregates weights
-LOCAL_STEPS=50      # Steps per client per round
-EXP_NAME="fed_dms_experiment_1"
+EXP_NAME="fed_dms_scl_esm2_650m_centralized_aligned"
 SIM_GPUS="0"
 
-# --- 2. MODEL HYPERPARAMETERS (Must match Centralized) ---
-LR="1e-3"
+# ---------------------------
+# MODEL HYPERPARAMETERS
+# ---------------------------
+LR="1e-4"
 BATCH_SIZE="8"
 TASK_TYPE="regression"
 TARGET_SIZE="1"
 LABEL_COL="DMS_score"
 
-# Set to "--encoder-frozen" to freeze, or empty string "" to unfreeze
-FROZEN_FLAG="--encoder-frozen" 
+# Correct flag name
+FROZEN_FLAG="--encoder_frozen"
 
-echo "Starting Federated Simulation..."
-echo "   - Rounds: $ROUNDS"
-echo "   - Local Steps: $LOCAL_STEPS"
-echo "   - Task: $TASK_TYPE"
-echo "   - Frozen: $FROZEN_FLAG"
+# Validation
+LIMIT_VAL_BATCHES="100"
 
-# --- 3. EXECUTION ---
-# We pass these new args to run_sim_scl.py
+echo "🚀 Starting Federated Simulation..."
+echo "   - Rounds:                ${ROUNDS}"
+echo "   - Local steps:           ${LOCAL_STEPS}"
+echo "   - Total steps:           $((ROUNDS * LOCAL_STEPS))"
+echo "   - LR:                    ${LR}"
+echo "   - Batch size:            ${BATCH_SIZE}"
+echo "   - Encoder frozen:        yes"
+echo "   - limit_val_batches:     ${LIMIT_VAL_BATCHES}"
+echo "   - GPUs:                  ${SIM_GPUS}"
+echo "   - Experiment:            ${EXP_NAME}"
+echo ""
+
 python3 run_sim_scl.py \
-    --num_rounds $ROUNDS \
-    --local_steps $LOCAL_STEPS \
-    --exp_name $EXP_NAME \
-    --sim_gpus $SIM_GPUS \
-    --model "650m" \
-    --lr $LR \
-    --batch_size $BATCH_SIZE \
-    --task_type $TASK_TYPE \
-    --label_column $LABEL_COL \
-    --target_size $TARGET_SIZE \
-    --limit-val-batches 10 \
-    $FROZEN_FLAG
+  --num_rounds "${ROUNDS}" \
+  --local_steps "${LOCAL_STEPS}" \
+  --exp_name "${EXP_NAME}" \
+  --sim_gpus "${SIM_GPUS}" \
+  --model "650m" \
+  --lr "${LR}" \
+  --batch_size "${BATCH_SIZE}" \
+  --task_type "${TASK_TYPE}" \
+  --label_column "${LABEL_COL}" \
+  --target_size "${TARGET_SIZE}" \
+  --limit_val_batches "${LIMIT_VAL_BATCHES}" \
+  ${FROZEN_FLAG}
 
-echo "Simulation Finished."
+echo "✅ Federated simulation finished."
