@@ -3,6 +3,7 @@
 *.nemo
 *.ckpt
 *.csv
+*.tar
 
 # Ignore raw data if it's huge (optional)
 data/raw/

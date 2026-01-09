@@ -55,10 +55,15 @@ BioNeMo lives inside a Docker container. We must "teleport" our code into it and
     * **Note:** We use `--network=host` to fix the "blind container" issue so `pip install` works.
     
     ```bash
-    docker run --gpus all -it --rm \
+    docker run \
+        --gpus all \
         --network=host \
-        -v ~/FedProFit:/workspace/project \
         --ipc=host \
+        -it --rm \
+        --shm-size=1g \
+        --ulimit memlock=-1 \
+        --ulimit stack=67108864 \
+        -v $(pwd):/workspace/project \
         nvcr.io/nvidia/clara/bionemo-framework:2.5 \
         bash
     ```

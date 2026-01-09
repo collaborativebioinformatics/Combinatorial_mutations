@@ -1,29 +1,41 @@
 #!/bin/bash
 
-# COnfiguration Parameters
+# Configuration
 LR="1e-4"
-STEPS="100"
+STEPS="1000"           
 BATCH_SIZE="8"
-RESULT_DIR="./results/run_1"
+RESULT_DIR="./results/run_centralized_human"
 
-# POINT TO THE CORRECT SCRIPT LOCATION
+# The Bionemo Script Path (Inside Docker)
 TRAIN_SCRIPT="/workspace/bionemo2/sub-packages/bionemo-esm2/src/bionemo/esm2/scripts/finetune_esm2.py"
 
-echo "Starting Training with LR=${LR}, Steps=${STEPS}..."
+# Data Paths (Inside Docker)
+# We use the 'human' split as an example for the centralized run. 
+# If you want to combine ALL clients, you would need to merge those CSVs first.
+TRAIN_DATA="/workspace/project/data/splits/human/train.csv"
+VAL_DATA="/workspace/project/data/splits/human/val.csv"
+CHECKPOINT="/workspace/project/esm2_650m.nemo"
 
-# Command to run the training
+echo "🚀 Starting Centralized Training..."
+echo "   - Steps: $STEPS"
+echo "   - Batch Size: $BATCH_SIZE"
+echo "   - Output: $RESULT_DIR"
+
+# Run command
 python $TRAIN_SCRIPT \
-    --train-data-path /workspace/project/data/splits/human/train.csv \
-    --valid-data-path /workspace/project/data/splits/human/val.csv \
-    --restore-from-checkpoint-path /workspace/project/esm2_650m.nemo \
+    --train-data-path $TRAIN_DATA \
+    --valid-data-path $VAL_DATA \
+    --restore-from-checkpoint-path $CHECKPOINT \
     --task-type regression \
     --mlp-target-size 1 \
-    --label-column target \
+    --label-column DMS_score \
     --lr $LR \
     --micro-batch-size $BATCH_SIZE \
     --num-steps $STEPS \
     --num-gpus 1 \
     --result-dir $RESULT_DIR \
-    --save-last-checkpoint
+    --save-last-checkpoint \
+    --val-check-interval 50 \
+    --log-every-n-steps 10
 
-# Before running this script, ensure that it is an executable: "chmod +x run_centralized_training.sh"
+echo "✅ Run Complete! Logs are in $RESULT_DIR"
