@@ -201,13 +201,15 @@ FedProFit framework has been successfully developed and implemented. The system 
 
 ### Local Training Performance
 
-We evaluated the model architecture using local training across different biological domains:
+We evaluated the model architecture using local training across different biological domains. The model uses **ESM-2 650M** from NVIDIA BioNeMo as a frozen backbone with locally trainable prediction heads. Training was conducted with a learning rate of **1e-4**, **8000 training steps**, and a **batch size of 8**.
 
 | Domain | Human | Virus | Prokaryote | Eukaryote |
 | --- | --- | --- | --- | --- |
 | Validation MSE | 0.956 | 3.331 | 3.504 | N/A* |
 
 *Eukaryote domain excluded due to data quality issues (NaN or invalid DMS scores in validation set)*
+
+![local_training_results](./figures/valid_mse.png)
 
 ### Federated Learning Framework
 
