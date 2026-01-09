@@ -16,7 +16,7 @@ TRAIN_DATA="/workspace/project/data/splits/human/train.csv"
 VAL_DATA="/workspace/project/data/splits/human/val.csv"
 CHECKPOINT="/workspace/project/esm2_650m.nemo"
 
-echo "🚀 Starting Centralized Training..."
+echo "Starting Centralized Training..."
 echo "   - Steps: $STEPS"
 echo "   - Batch Size: $BATCH_SIZE"
 echo "   - Output: $RESULT_DIR"
@@ -34,7 +34,7 @@ python $TRAIN_SCRIPT \
     --num-steps $STEPS \
     --num-gpus 1 \
     --result-dir $RESULT_DIR \
-    --val-check-interval 50 \
+    --val-check-interval 1000 \
     --log-every-n-steps 10 \
     --save-top-k 1 \
     --metric-to-monitor-for-checkpoints val_loss \

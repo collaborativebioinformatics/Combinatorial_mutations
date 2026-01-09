@@ -192,7 +192,7 @@ if __name__ == "__main__":
     parser.add_argument("--target_size", type=int, default=1, help="MLP target size")
     parser.add_argument("--encoder-frozen", action="store_true", help="Freeze encoder")
     #parser.add_argument("--limit-val-batches", type=float, default=1.0, help="Limit validation batches (1.0 = all)")
-    parser.add_argument("--limit-val-batches", type=int, default=10, help="Number of validation batches (Int)")
+    parser.add_argument("--limit-val-batches", type=float, default=1.0)
 
     args = parser.parse_args()
     args.num_clients = 0 
