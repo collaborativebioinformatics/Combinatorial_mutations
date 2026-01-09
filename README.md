@@ -2,6 +2,8 @@
 
 **Predicting Deep Mutational Scanning (DMS) scores using Pre-trained Protein Language Models in a Federated Environment.**
 
+[![Summary](https://img.shields.io/badge/Paper-PDF-red)](latexcode/main.pdf)
+
 ## What Problem Does This Solve?
 
 Predicting the functional effects of combinatorial mutations is a critical challenge in protein engineering and evolutionary biology. While Deep Mutational Scanning (DMS) provides ground-truth fitness landscapes, the data faces two major challenges:
