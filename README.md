@@ -60,10 +60,7 @@ Predicting the functional effects of combinatorial mutations is a critical chall
 
 #### 1. Environment Setup
 
-Follow the detailed setup guide in **[SETUP.md](SETUP.md)** to:
-- Set up the BioNeMo Docker container
-- Install dependencies (NVFlare, BioNeMo)
-- Configure the environment
+Set up the BioNeMo Docker container, install dependencies (NVFlare, BioNeMo), and configure the environment.
 
 #### 2. Fetch Pre-trained Model
 
@@ -105,8 +102,6 @@ chmod +x run_centralized_training.sh
 cd federated
 # See federated/run_federated_training.sh for federated setup
 ```
-
-For detailed federated learning protocol and configuration, see **[SETUP.md](SETUP.md#-centralized-esm-2-fine-tuning-end-to-end-workflow)**.
 
 #### 5. Evaluation
 
@@ -188,8 +183,6 @@ We utilize a **Hydra** approach [[4]](#references) with a frozen backbone and lo
 - Pooling layer + Regression MLP (added locally per client)
 - Output: Predicted DMS score
 - Only prediction head weights are communicated during federated learning
-
-For detailed configuration, see **[SETUP.md](SETUP.md#3-training-the-execution-script)**.
 
 ---
 
