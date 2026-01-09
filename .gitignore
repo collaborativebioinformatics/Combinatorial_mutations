@@ -17,7 +17,6 @@ latexcode/*.bbl
 latexcode/*.blg
 latexcode/*.log
 latexcode/*.out
-latexcode/*.pdf
 latexcode/*.synctex.gz
 latexcode/*.fdb_latexmk
 latexcode/*.fls
