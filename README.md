@@ -47,91 +47,87 @@ Predicting the functional effects of combinatorial mutations is a critical chall
 
 ## How to Use
 
+> 📖 **For detailed setup instructions, see [SETUP.md](SETUP.md)** — This includes step-by-step guide for Docker setup, model fetching, data preparation, and training.
+
 ### Prerequisites
 
 * Python 3.8+
 * PyTorch
-* NVIDIA BioNeMo Framework (or HuggingFace Transformers for ESM-2)
+* NVIDIA BioNeMo Framework (ESM-2 via NVIDIA NGC)
 * NVIDIA FLARE (nvflare) for Federated Learning orchestration
-
-### Installation
-
-```bash
-git clone https://github.com/your-username/FedProFit.git
-cd FedProFit
-pip install -r requirements.txt
-```
+* Docker (for BioNeMo containerized environment)
+* NVIDIA NGC Account with API Key
 
 ### Quick Start
 
-**1. Start the Federated Learning Server:**
+#### 1. Environment Setup
 
-The server orchestrates the aggregation of model weights across all clients.
+Follow the detailed setup guide in **[SETUP.md](SETUP.md)** to:
+- Set up the BioNeMo Docker container
+- Install dependencies (NVFlare, BioNeMo)
+- Configure the environment
 
-```bash
-python server.py --rounds **[TODO: specify number of communication rounds, e.g., 10]** --port **[TODO: specify port number, e.g., 8080]**
-```
+#### 2. Fetch Pre-trained Model
 
-**2. Start the Federated Clients:**
-
-Open separate terminals for each client to simulate distributed nodes. Each client corresponds to a specific biological domain.
-
-```bash
-# Terminal 1: Human/Clinical Node
-python client.py --client_id 1 --taxon Human --data_path **[TODO: path to Human domain data]**
-
-# Terminal 2: Virus Node
-python client.py --client_id 2 --taxon Virus --data_path **[TODO: path to Virus domain data]**
-
-# Terminal 3: Prokaryote Node
-python client.py --client_id 3 --taxon Prokaryote --data_path **[TODO: path to Prokaryote domain data]**
-
-# Terminal 4: Eukaryote Node
-python client.py --client_id 4 --taxon Eukaryote --data_path **[TODO: path to Eukaryote domain data]**
-```
-
-### Federated Learning Protocol
-
-The training process follows the Federated Averaging (FedAvg) algorithm:
-
-1. **Initialization**: The central server initializes the weights of the prediction head and distributes them to all clients. The BioNeMo backbone is pre-loaded on all clients.
-
-2. **Local Training**: Each client trains the prediction head on their local data for **[TODO: specify number of local epochs, e.g., 5]** epochs. The loss function is Mean Squared Error (MSE) between predicted and actual DMS scores, optimized using AdamW with learning rate **[TODO: specify learning rate, e.g., 1e-4]**.
-
-3. **Aggregation**: Clients send only the updated weights of the prediction head back to the server. The server performs weighted averaging of these weights to create a new global model, where weights are proportional to the number of training samples per client.
-
-4. **Distribution**: The updated global model is sent back to clients for the next round of federated training.
-
-This process repeats for the specified number of communication rounds until convergence.
-
-### Model Configuration
-
-**BioNeMo Backbone:**
-- Model: **[TODO: specify model name, e.g., ESM-2 or MegaMolBART]**
-- Input: Amino acid sequence of the mutant protein
-- Output: Per-residue or whole-sequence embeddings
-- Status: Frozen (weights not updated during training)
-
-**Prediction Head (MLP):**
-- Number of layers: **[TODO: specify, e.g., 2 or 3 layers]**
-- Hidden dimensions: **[TODO: specify, e.g., 512, 256]**
-- Activation functions: **[TODO: specify, e.g., ReLU, GELU]**
-- Pooling method: **[TODO: specify, e.g., mean pooling or CLS token]**
-- Output: Single scalar value representing predicted DMS score
-
-### Evaluation
-
-After training, evaluate the model performance:
+Download the ESM-2 650M checkpoint from NVIDIA NGC:
 
 ```bash
-python evaluate.py --model_path **[TODO: path to trained model]** --test_data **[TODO: path to test data]**
+# Inside the BioNeMo Docker container
+python fetch_model.py
 ```
 
-Metrics include:
+This will download and place the model at `/workspace/project/esm2_650m.nemo`.
+
+#### 3. Prepare Data
+
+Split your data into train/val/test sets:
+
+```bash
+# Inside the BioNeMo Docker container
+cd /workspace/project/data
+python make_splits.py
+```
+
+This creates processed data in `/workspace/project/data/splits/` organized by domain (human, virus, prokaryote, eukaryote).
+
+#### 4. Training Options
+
+**Centralized Training:**
+
+```bash
+# Inside the BioNeMo Docker container
+chmod +x run_centralized_training.sh
+./run_centralized_training.sh
+```
+
+**Federated Training:**
+
+```bash
+# Inside the BioNeMo Docker container
+cd federated
+# See federated/run_federated_training.sh for federated setup
+```
+
+For detailed federated learning protocol and configuration, see **[SETUP.md](SETUP.md#-centralized-esm-2-fine-tuning-end-to-end-workflow)**.
+
+#### 5. Evaluation
+
+Evaluate model performance using the analysis scripts:
+
+```bash
+# Inside the BioNeMo Docker container
+python analysis/evaluate_model.py \
+    --model_path ./results/run_centralized_human/best.ckpt \
+    --test_data ./data/splits/human/test.csv
+```
+
+**Metrics:**
 - Spearman's rank correlation coefficient
 - Pearson correlation
 - Mean Squared Error (MSE)
 - Mean Absolute Error (MAE)
+
+> 📐 **For detailed model architecture information, see the [Model Architecture](#model-architecture) section below.**
 
 ---
 
@@ -177,19 +173,23 @@ We utilize a **Hydra** approach (also known as a frozen shared backbone with loc
 
 ### Frozen Backbone (BioNeMo)
 
-* We use a pre-trained Protein Language Model (e.g., ESM-2 or MegaMolBART via NVIDIA BioNeMo) as the encoder.
-* **Input:** Amino acid sequence of the mutant (e.g., `M1A, ...`).
-* **Output:** Per-residue or whole-sequence embeddings.
-* *Note:* All weights in this encoder are **frozen** to reduce communication overhead and computational requirements on edge clients.
+* **Model:** ESM-2 650M (via NVIDIA BioNeMo)
+* **Input:** Amino acid sequence of the mutant protein (e.g., `M1A, ...`)
+* **Output:** Per-residue or whole-sequence embeddings
+* **Status:** Frozen (weights not updated during training) — see `--encoder-frozen` flag in training scripts
+* **Note:** All weights in this encoder are **frozen** to reduce communication overhead and computational requirements on edge clients
 
 ### Trainable Prediction Head (Added Locally)
 
 * The prediction head is added locally on each client and consists of:
-  * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector.
-  * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen.
+  * **Pooling Layer:** Aggregates the sequence embedding (using Mean Pooling or the `<CLS>` token representation) into a fixed-size vector
+  * **Regression MLP:** A multi-layer perceptron (MLP) stacked on top of the pooled embeddings. This MLP is trainable and is added locally to each client, allowing for local adaptation while keeping the BioNeMo backbone frozen
   * **Architecture Details:** **[TODO: To be specified: number of layers, hidden dimensions, activation functions]**
-* **Output:** A single scalar value representing the predicted DMS score.
-* *Note:* By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead. This Hydra architecture enables efficient federated learning by sharing the computationally expensive feature extraction while allowing local personalization of the prediction head.
+* **Output:** A single scalar value representing the predicted DMS score
+* **Training:** Only the prediction head weights are updated during federated learning
+* **Note:** By keeping the BioNeMo backbone frozen and only training the MLP prediction head locally, we ensure that only the lightweight prediction head weights need to be communicated during federated learning, significantly reducing communication overhead. This Hydra architecture enables efficient federated learning by sharing the computationally expensive feature extraction while allowing local personalization of the prediction head.
+
+For detailed model configuration and hyperparameters, see **[SETUP.md](SETUP.md#3-training-the-execution-script)** and the training scripts.
 
 ---
 

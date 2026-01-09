@@ -186,7 +186,7 @@ python fetch_model.py
 
 We need to split our raw CSV files into train, val, and test sets. We use a script that automatically detects CSV files in the folder and creates the necessary structure.
 
-### **The Script: `make_splits.py**`
+### The Script: `make_splits.py`
 
 Place this script inside your data folder (e.g., /workspace/project/data/). It works by scanning the directory it is located in.
 
@@ -201,7 +201,6 @@ Critical Requirements:
 ```bash
 cd /workspace/project/data
 python make_splits.py
-
 ```
 This will create a new folder called /workspace/project/data/splits/ containing your processed data.
 ---
@@ -210,7 +209,7 @@ This will create a new folder called /workspace/project/data/splits/ containing 
 
 Once the model is ready and data is split, we run the fine-tuning job. We use a shell script to manage the complex arguments required by BioNeMo.
 
-### **The Script: `run_centralized_training.sh**`
+### The Script: `run_centralized_training.sh`
 
 Create this file in `/workspace/project/`:
 
@@ -292,6 +291,3 @@ chmod +x run_centralized_training.sh
 4. **Verify:**
 Check `./results/run_centralized_human` for logs and the final `.nemo` model.
 
-```
-
-```
