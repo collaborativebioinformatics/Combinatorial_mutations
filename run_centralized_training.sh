@@ -4,14 +4,14 @@
 LR="1e-4"
 STEPS="1000"           
 BATCH_SIZE="8"
+
+# 1. Pointing to local results (since the mount failed)
 RESULT_DIR="./results/run_centralized_human"
 
 # The Bionemo Script Path (Inside Docker)
 TRAIN_SCRIPT="/workspace/bionemo2/sub-packages/bionemo-esm2/src/bionemo/esm2/scripts/finetune_esm2.py"
 
 # Data Paths (Inside Docker)
-# We use the 'human' split as an example for the centralized run. 
-# If you want to combine ALL clients, you would need to merge those CSVs first.
 TRAIN_DATA="/workspace/project/data/splits/human/train.csv"
 VAL_DATA="/workspace/project/data/splits/human/val.csv"
 CHECKPOINT="/workspace/project/esm2_650m.nemo"
@@ -34,8 +34,11 @@ python $TRAIN_SCRIPT \
     --num-steps $STEPS \
     --num-gpus 1 \
     --result-dir $RESULT_DIR \
-    --save-last-checkpoint \
     --val-check-interval 50 \
-    --log-every-n-steps 10
+    --log-every-n-steps 10 \
+    --save-top-k 1 \
+    --metric-to-monitor-for-checkpoints val_loss \
+    --save-last-checkpoint \
+    --avoid-ckpt-async-save
 
 echo "✅ Run Complete! Logs are in $RESULT_DIR"

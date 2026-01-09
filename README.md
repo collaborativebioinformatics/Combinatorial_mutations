@@ -1,4 +1,4 @@
-# FedProFit: Federated Prediction of Combinatorial Mutation Effects
+# FedProFit: Federated Prediction of Combinatorial Protein Sequence Mutation Effects on Protein Function
 
 **Predicting Deep Mutational Scanning (DMS) scores using Pre-trained Protein Language Models in a Federated Environment.**
 
