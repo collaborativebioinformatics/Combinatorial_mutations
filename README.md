@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="FedProFit/figures/FedProFit-logo.png" alt="FedProFit Logo" width="200" height="auto">
+  <img src="./figures/FedProFit-logo.png" alt="FedProFit Logo" width="200">
 
   <h1>FedProFit: Federated Protein Fitness</h1>
   
@@ -25,6 +25,7 @@
 </div>
 
 <br/>
+
 ## What Problem Does This Solve?
 
 Predicting the functional effects of combinatorial mutations is a critical challenge in protein engineering and evolutionary biology. While Deep Mutational Scanning (DMS) provides ground-truth fitness landscapes, the data faces two major challenges:
